@@ -163,10 +163,18 @@ ak3_main() {
   if [ -z "$boot" ] || ! ak3_exists "$boot"; then ak3_die "boot partition/image not found"; fi
   init_state=absent; init=
   if [ -n "${AK3_INIT_BOOT_IMAGE:-}" ]; then init=$AK3_INIT_BOOT_IMAGE; elif [ "$AK3_AB" = 1 ]; then init=$(ak3_part_path "init_boot$AK3_SLOT_SUFFIX" 2>/dev/null || :); else init=$(ak3_part_path init_boot 2>/dev/null || :); fi
-  if [ -n "$init" ] && ak3_exists "$init"; then init_state=stock-preserved; ak3_inspect_init_boot "$init"; elif [ "$AK3_AB" -eq 1 ]; then
-    if ak3_part_exists init_boot_a || ak3_part_exists init_boot_b; then ak3_die "init_boot missing for active slot $AK3_SLOT_SUFFIX"; fi
-    printf '%s\n' 'init_boot: absent on A/B device, inspection skipped'
-  else printf '%s\n' 'init_boot: absent, inspection skipped'; fi
+  if [ -n "$init" ] && ak3_exists "$init"; then
+    init_state=stock-preserved
+    ak3_inspect_init_boot "$init"
+  else
+    case "$AK3_AB" in
+      1)
+        if ak3_part_exists init_boot_a || ak3_part_exists init_boot_b; then ak3_die "init_boot missing for active slot $AK3_SLOT_SUFFIX"; fi
+        printf '%s\n' 'init_boot: absent on A/B device, inspection skipped'
+        ;;
+      *) printf '%s\n' 'init_boot: absent, inspection skipped';;
+    esac
+  fi
   ak3_unpack_boot "$boot"
   printf 'resolver_source=%s slot_suffix=%s page_size=%s page_size_source=%s kernel_fmt=%s boot=%s init_boot=%s\n' "$AK3_RESOLVER_SOURCE" "${AK3_SLOT_SUFFIX:-none}" "$AK3_PAGE_SIZE" "$AK3_PAGE_SIZE_SOURCE" "${AK3_KERNEL_FMT:-unknown}" "$boot" "$init_state"
 }
