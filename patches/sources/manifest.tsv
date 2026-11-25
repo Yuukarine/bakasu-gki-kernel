@@ -7,3 +7,6 @@ faster-sdp-900ma	patch-c	OnePlus-vendor-hooks	-
 ptrace-leak-fix	patch-c	Ptrace-Leak-Fix	-
 bore	patch-c	BORE	configs/features/oneplus-bore.fragment
 amneziawg	upstream-tree	AmneziaWG	-
+bbg	patch-c	BBG	-
+droidspaces	patch-c	Droidspaces	-
+ntsync	patch-c	NTSync	-

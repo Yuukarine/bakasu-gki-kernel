@@ -18,7 +18,7 @@ All commands and artifacts below are inside this root; Luna worktrees are under
 - [x] Shared BakaSU/SUSFS v2.4.0/NoMount fragment is in `configs/bakasu_stealth.fragment`; protected debug/ABI flags remain enabled and log/debug/localversion leak flags are disabled.
 - [x] GKI fragment locks `CONFIG_HZ_250=y`; OnePlus fragment contains no fabricated symbols. Conditional Kconfig is limited to `configs/features/oneplus-bore.fragment`; patch-only features are declared in `patches/sources/manifest.tsv` and applied separately by `scripts/apply_patch_sources.sh`.
 - [x] OnePlus BORE order is enforced: merge `oneplus-bore.fragment` → apply BORE patch → `olddefconfig` → `verify_kconfig` → build → `verify_abi_crc.sh --bore` → package.
-- [x] Workflows include OnePlus Ace 3V Android 16/OOS16/COS16 with KMI `android14-6.1` and both stock banners, plus GKI families `android13-5.15`, `android14-6.1`, `android15-6.6`, and `android16-6.12`; Android 16 disables BBG/Droidspaces/NTSync.
+- [x] Workflows include OnePlus Ace 3V Android 16/OOS16/COS16 with KMI `android14-6.1` and both stock banners, plus GKI families `android13-5.15`, `android14-6.1`, `android15-6.6`, and `android16-6.12`; matrix patch selection enables BBG/Droidspaces/NTSync only on the first three families and disables all three on Android 16.
 - [x] AnyKernel templates are POSIX `sh`, use `magiskboot unpack`/`KERNEL_FMT`, preserve stock `init_boot`, enforce exact `uname -r`, supported KMI generation, page-size rules, and no sublevel downgrade.
 
 ## Resolver and verification gates
