@@ -110,7 +110,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p out
-          make -C .tmp/kernel_src/kernel_platform/common O="$PWD/out" defconfig
+          make -C .tmp/kernel_src/kernel_platform/common O="$PWD/out" gki_defconfig
       - name: Apply BORE before build when selected
         if: ${{ (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) && inputs.enable_bore == true && matrix.hmbird == false }}
         env:

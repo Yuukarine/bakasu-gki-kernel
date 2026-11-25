@@ -4,7 +4,7 @@ set -Eeuo pipefail
 src=${KERNEL_SOURCE_DIR:-.tmp/kernel_src}; out=${STOCK_KERNEL_OUT:-.tmp/stock-out}
 [[ -d $src ]] || { echo "kernel source missing: $src" >&2; exit 1; }
 mkdir -p "$out"
-make -C "$src" O="$PWD/$out" defconfig
+make -C "$src" O="$PWD/$out" gki_defconfig
 [[ -x "$src/scripts/config" ]] || make -C "$src" O="$PWD/$out" scripts
 "$src/scripts/config" --file "$PWD/$out/.config" --enable MODULES --enable MODVERSIONS
 make -C "$src" O="$PWD/$out" olddefconfig
