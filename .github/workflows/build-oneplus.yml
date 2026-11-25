@@ -2,8 +2,8 @@ name: build-oneplus
 on:
   workflow_dispatch:
     inputs:
-      source_repo: {description: OnePlusOSS/OGKI source URL, required: false, default: https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS, type: string}
-      source_ref: {description: Source branch or SHA, required: false, default: master, type: string}
+      source_repo: {description: OnePlusOSS kernel source URL, required: false, default: https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git, type: string}
+      source_ref: {description: Source branch or SHA, required: false, default: oneplus/sm7675_b_16.0.0_ace_3v, type: string}
       stock_symvers_path: {description: Optional stock Module.symvers path, required: false, type: string}
       stock_symvers_url: {description: Optional stock Module.symvers URL, required: false, type: string}
       gki_prebuilt_symvers: {description: Optional GKI prebuilt Module.symvers path, required: false, type: string}
@@ -29,8 +29,8 @@ jobs:
       STOCK_UNAME: ${{ matrix.stock_uname }}
       PAGE_SIZE: ${{ matrix.page_size }}
       TOOLCHAIN_ID: ${{ inputs.toolchain || 'clang-r547379' }}
-      SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS' }}
-      SOURCE_REF: ${{ inputs.source_ref || 'master' }}
+      SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git' }}
+      SOURCE_REF: ${{ inputs.source_ref || 'oneplus/sm7675_b_16.0.0_ace_3v' }}
     steps:
       - uses: actions/checkout@v4
       - name: Free runner disk space
