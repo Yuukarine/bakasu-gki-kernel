@@ -17,7 +17,6 @@ on:
 permissions: {contents: read}
 jobs:
   build:
-    if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
     strategy:
       fail-fast: false
       matrix:
@@ -35,21 +34,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Free runner disk space
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
           set -euo pipefail
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android
           sudo docker system prune -af || true
       - name: Checkout OnePlus source
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
           set -euo pipefail
           git clone --depth 1 --branch "$SOURCE_REF" "$SOURCE_REPO" .tmp/kernel_src
           echo "SOURCE_SHA=$(git -C .tmp/kernel_src rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Restore stock Module.symvers cache
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
           key: stock-module-symvers-oneplus-${{ matrix.kmi }}-${{ matrix.stock_uname }}-${{ matrix.page_size }}-${{ github.sha }}
       - name: Resolve stock Module.symvers
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         id: symvers
         env:
           STOCK_PATH: ${{ inputs.stock_symvers_path }}
@@ -71,34 +74,39 @@ jobs:
             printf 'cache_key=%s\nkmi=%s\npage_size=%s\nstock_uname=%s\nsource_sha=%s\ntoolchain=%s\nsha256=%s\n' "$cache_key" "$KMI" "$PAGE_SIZE" "$STOCK_UNAME" "$SOURCE_SHA" "$TOOLCHAIN_ID" "$sha" > "$RUNNER_TEMP/cache-Module.symvers/metadata"
           fi
       - name: Save bootstrapped stock Module.symvers cache
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         if: ${{ steps.symvers.outputs.resolver_source == 'bootstrap' }}
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
           key: stock-module-symvers-oneplus-${{ matrix.kmi }}-${{ matrix.stock_uname }}-${{ matrix.page_size }}-${{ github.sha }}
       - name: Apply declared patch sources after stock baseline resolution
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:
           PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,faster-sdp-900ma,amneziawg
         run: |
           set -euo pipefail
           bash scripts/apply_patch_sources.sh
       - name: Set custom BakaSU driver display name
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:
           CUSTOM_DRIVER_NAME: ${{ inputs.custom_driver_name }}
         run: bash scripts/set_bakasu_driver_name.sh --source-dir .tmp/kernel_src
       - name: Prepare baseline Kconfig
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
           set -euo pipefail
           mkdir -p out
           make -C .tmp/kernel_src O="$PWD/out" defconfig
       - name: Apply BORE before build when selected
-        if: ${{ inputs.enable_bore == true && matrix.hmbird == false }}
+        if: ${{ (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) && inputs.enable_bore == true && matrix.hmbird == false }}
         env:
           BORE_PATCH_URL: https://raw.githubusercontent.com/firelzrd/bore-scheduler/main/patches/legacy/linux-6.1-bore/0001-linux6.1.y-bore5.1.0.patch
         run: |
           set -euo pipefail
           BORE_PATCH_URL="$BORE_PATCH_URL" bash scripts/apply_bore.sh
       - name: Merge branch config and olddefconfig
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
           set -euo pipefail
           test -d .tmp/kernel_src
@@ -107,17 +115,21 @@ jobs:
           make -C .tmp/kernel_src O="$PWD/out" olddefconfig
           scripts/verify_kconfig.sh --config out/.config --branch oneplus-ogki
       - name: Build OnePlus OGKI
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env: {KERNEL_SOURCE_DIR: .tmp/kernel_src, KERNEL_OUT: out}
         run: scripts/build_oneplus.sh
       - name: ABI CRC gate (BORE hard gate when selected)
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
           set -euo pipefail
           test -s "$RUNNER_TEMP/stock-Module.symvers"
           test -s Module.symvers
           if [[ "${{ inputs.enable_bore || false }}" == true ]]; then scripts/verify_abi_crc.sh --bore "$RUNNER_TEMP/stock-Module.symvers" Module.symvers; else scripts/verify_abi_crc.sh "$RUNNER_TEMP/stock-Module.symvers" Module.symvers; fi
       - name: Package AnyKernel ZIP and checksum
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: scripts/package_anykernel.sh --template anykernel/oneplus --image out/arch/arm64/boot/Image --name "oneplus-${{ matrix.device }}-${{ matrix.stock_uname }}" --output-dir artifacts
       - name: Save boot/package provenance
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
           set -euo pipefail
           mkdir -p artifacts
