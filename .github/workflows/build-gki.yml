@@ -33,18 +33,15 @@ jobs:
       SOURCE_REF: ${{ inputs.source_ref || 'main' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout GKI source
-        run: git clone --depth 1 --branch "$SOURCE_REF" "$SOURCE_REPO" .tmp/kernel_src
-      - name: Resolve declared patch sources
-        env:
-          PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,amneziawg
+      - name: Free runner disk space
         run: |
           set -euo pipefail
-          if [[ "$KMI" == android13-* ]]; then PATCH_FEATURES="$PATCH_FEATURES,ptrace-leak-fix"; fi
-          [[ '${{ matrix.bbg }}' == true ]] && PATCH_FEATURES="$PATCH_FEATURES,bbg"
-          [[ '${{ matrix.droidspaces }}' == true ]] && PATCH_FEATURES="$PATCH_FEATURES,droidspaces"
-          [[ '${{ matrix.ntsync }}' == true ]] && PATCH_FEATURES="$PATCH_FEATURES,ntsync"
-          PATCH_FEATURES="$PATCH_FEATURES" scripts/apply_patch_sources.sh
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android
+          sudo docker system prune -af || true
+      - name: Checkout GKI source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$SOURCE_REF" "$SOURCE_REPO" .tmp/kernel_src
           echo "SOURCE_SHA=$(git -C .tmp/kernel_src rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Restore stock Module.symvers cache first
         uses: actions/cache/restore@v4
@@ -78,6 +75,16 @@ jobs:
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
           key: stock-module-symvers-gki-${{ matrix.kmi }}-${{ matrix.page_size }}-${{ inputs.stock_uname || matrix.stock_uname }}-${{ github.sha }}
+      - name: Apply declared patch sources after stock baseline resolution
+        env:
+          PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,amneziawg
+        run: |
+          set -euo pipefail
+          if [[ "$KMI" == android13-* ]]; then PATCH_FEATURES="$PATCH_FEATURES,ptrace-leak-fix"; fi
+          [[ '${{ matrix.bbg }}' == true ]] && PATCH_FEATURES="$PATCH_FEATURES,bbg"
+          [[ '${{ matrix.droidspaces }}' == true ]] && PATCH_FEATURES="$PATCH_FEATURES,droidspaces"
+          [[ '${{ matrix.ntsync }}' == true ]] && PATCH_FEATURES="$PATCH_FEATURES,ntsync"
+          PATCH_FEATURES="$PATCH_FEATURES" bash scripts/apply_patch_sources.sh
       - name: Prepare baseline Kconfig
         run: |
           set -euo pipefail

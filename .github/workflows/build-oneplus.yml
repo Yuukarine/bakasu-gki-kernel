@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       source_repo: {description: OnePlusOSS/OGKI source URL, required: false, default: https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS, type: string}
-      source_ref: {description: Source branch or SHA, required: false, default: android14-6.1.118, type: string}
+      source_ref: {description: Source branch or SHA, required: false, default: master, type: string}
       stock_symvers_path: {description: Optional stock Module.symvers path, required: false, type: string}
       stock_symvers_url: {description: Optional stock Module.symvers URL, required: false, type: string}
       gki_prebuilt_symvers: {description: Optional GKI prebuilt Module.symvers path, required: false, type: string}
@@ -28,17 +28,18 @@ jobs:
       PAGE_SIZE: ${{ matrix.page_size }}
       TOOLCHAIN_ID: ${{ inputs.toolchain || 'clang-r547379' }}
       SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS' }}
-      SOURCE_REF: ${{ inputs.source_ref || 'android14-6.1.118' }}
+      SOURCE_REF: ${{ inputs.source_ref || 'master' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout OnePlus source
-        run: git clone --depth 1 --branch "$SOURCE_REF" "$SOURCE_REPO" .tmp/kernel_src
-      - name: Resolve declared patch sources
-        env:
-          PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,faster-sdp-900ma,amneziawg
+      - name: Free runner disk space
         run: |
           set -euo pipefail
-          PATCH_FEATURES="$PATCH_FEATURES" scripts/apply_patch_sources.sh
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android
+          sudo docker system prune -af || true
+      - name: Checkout OnePlus source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$SOURCE_REF" "$SOURCE_REPO" .tmp/kernel_src
           echo "SOURCE_SHA=$(git -C .tmp/kernel_src rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Restore stock Module.symvers cache
         uses: actions/cache/restore@v4
@@ -72,6 +73,12 @@ jobs:
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
           key: stock-module-symvers-oneplus-${{ matrix.kmi }}-${{ matrix.stock_uname }}-${{ matrix.page_size }}-${{ github.sha }}
+      - name: Apply declared patch sources after stock baseline resolution
+        env:
+          PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,faster-sdp-900ma,amneziawg
+        run: |
+          set -euo pipefail
+          bash scripts/apply_patch_sources.sh
       - name: Prepare baseline Kconfig
         run: |
           set -euo pipefail
@@ -79,9 +86,11 @@ jobs:
           make -C .tmp/kernel_src O="$PWD/out" defconfig
       - name: Apply BORE before build when selected
         if: ${{ inputs.enable_bore == true && matrix.hmbird == false }}
+        env:
+          BORE_PATCH_URL: https://raw.githubusercontent.com/firelzrd/bore-scheduler/main/patches/legacy/linux-6.1-bore/0001-linux6.1.y-bore5.1.0.patch
         run: |
           set -euo pipefail
-          scripts/apply_bore.sh
+          BORE_PATCH_URL="$BORE_PATCH_URL" bash scripts/apply_bore.sh
       - name: Merge branch config and olddefconfig
         run: |
           set -euo pipefail

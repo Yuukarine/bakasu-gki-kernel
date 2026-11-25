@@ -54,8 +54,8 @@ ak3_resolve_slot() {
     if [ -n "$value" ]; then ak3_norm_slot "$value"; AK3_RESOLVER_SOURCE=cmdline; AK3_AB=1; return 0; fi
   fi
   a=0; b=0
-  ak3_part_exists boot_a || ak3_part_exists init_boot_a && a=1
-  ak3_part_exists boot_b || ak3_part_exists init_boot_b && b=1
+  if ak3_part_exists boot_a || ak3_part_exists init_boot_a; then a=1; fi
+  if ak3_part_exists boot_b || ak3_part_exists init_boot_b; then b=1; fi
   if [ "$a" = 1 ] || [ "$b" = 1 ]; then
     AK3_AB=1; AK3_RESOLVER_SOURCE=partition
     if [ "$a" = 1 ] && [ "$b" != 1 ]; then AK3_SLOT_SUFFIX=_a; fi

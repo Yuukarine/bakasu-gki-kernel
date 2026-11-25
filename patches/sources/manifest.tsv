@@ -1,12 +1,12 @@
-# feature	source_kind	default_reference	kconfig_fragment
-bakasu	upstream-tree	BakaSU	-
-susfs-v2.4.0	upstream-tree	SUSFS-v2.4.0	-
-nomount	upstream-tree	NoMount	-
-unicode-bypass-fix	patch-c	Unicode-Bypass-Fix	-
-faster-sdp-900ma	patch-c	OnePlus-vendor-hooks	-
-ptrace-leak-fix	patch-c	Ptrace-Leak-Fix	-
-bore	patch-c	BORE	configs/features/oneplus-bore.fragment
-amneziawg	upstream-tree	AmneziaWG	-
-bbg	patch-c	BBG	-
-droidspaces	patch-c	Droidspaces	-
-ntsync	patch-c	NTSync	-
+# feature	source_kind	source_url	ref	kconfig_fragment
+bakasu	upstream-tree	https://github.com/Baka-SU/BakaSU.git	main	-
+susfs-v2.4.0	upstream-tree	https://gitlab.com/simonpunk/susfs4ksu.git	master	-
+nomount	upstream-tree	https://github.com/Bouteillepleine/NoMount-Suite.git	main	-
+unicode-bypass-fix	patch-c	https://github.com/Baka-SU/BakaSU.git	main	-
+faster-sdp-900ma	patch-c	https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS.git	master	-
+ptrace-leak-fix	patch-c	https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS.git	master	-
+bore	patch-c	https://github.com/firelzrd/bore-scheduler.git	main	configs/features/oneplus-bore.fragment
+amneziawg	upstream-tree	https://github.com/amnezia-vpn/amneziawg-linux-kernel-module.git	master	-
+bbg	patch-c	https://github.com/WildKernels/GKI_KernelSU_SUSFS.git	main	-
+droidspaces	patch-c	https://github.com/WildKernels/GKI_KernelSU_SUSFS.git	droidspaces-resource-limits	-
+ntsync	patch-c	https://github.com/WildKernels/GKI_KernelSU_SUSFS.git	main	-

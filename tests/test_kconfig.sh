@@ -14,6 +14,8 @@ good="$tmp/good.config"; make_cfg "$good"
 "$root/scripts/verify_kconfig.sh" --config "$good" --branch aosp-gki >/dev/null
 badlog="$tmp/bad-log.config"; sed 's/^# CONFIG_KSU_SUSFS_ENABLE_LOG is not set$/CONFIG_KSU_SUSFS_ENABLE_LOG=y/' "$good" > "$badlog"
 if "$root/scripts/verify_kconfig.sh" --config "$badlog" --branch aosp-gki >/dev/null 2>&1; then echo 'ENABLE_LOG negative fixture unexpectedly passed' >&2; exit 1; fi
+badhook="$tmp/bad-hook.config"; sed 's/^# CONFIG_KSU_TRACEPOINT_HOOK is not set$/CONFIG_KSU_TRACEPOINT_HOOK=y/' "$good" > "$badhook"
+if "$root/scripts/verify_kconfig.sh" --config "$badhook" --branch aosp-gki >/dev/null 2>&1; then echo 'TRACEPOINT_HOOK negative fixture unexpectedly passed' >&2; exit 1; fi
 baddbg="$tmp/bad-debugfs.config"; sed 's/^CONFIG_DEBUG_FS=y$/# CONFIG_DEBUG_FS is not set/' "$good" > "$baddbg"
 if "$root/scripts/verify_kconfig.sh" --config "$baddbg" --branch aosp-gki >/dev/null 2>&1; then echo 'DEBUG_FS negative fixture unexpectedly passed' >&2; exit 1; fi
 printf 'kconfig fixtures: PASS\n'
