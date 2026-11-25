@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+prompt=${1:-"Input required"}
+default_value=${2:-}
+if command -v zenity >/dev/null 2>&1 && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+  zenity --entry --title="BakaSU kernel build" --text="$prompt" --entry-text="$default_value" || printf '%s' "$default_value"
+elif command -v kdialog >/dev/null 2>&1 && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+  kdialog --title "BakaSU kernel build" --inputbox "$prompt" "$default_value" || printf '%s' "$default_value"
+else
+  printf '%s' "$default_value"
+fi

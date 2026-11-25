@@ -1,0 +1,40 @@
+BakaSU skill workspace transaction verification
+TARGET: /home/yuukari_ne/My-Project/custom-phone/kernel-build/scripts/ask_user_popup.sh
+CHANGED FIELD/BRANCH: default_value assignment now accepts BAKASU_POPUP_DEFAULT when argument 2 is absent; existing zenity/kdialog/display fallback is preserved.
+ORIGINAL TARGET SHA256: b5caea4f74056880a976ec3762009cf0c980f9569e271ff5a24c349aa602ba51
+MODIFIED_FILE SHA256: 0f84c5d6d9928fc438c7a5fef44af729740f449e75cd7bfdefcee95aa6fe347d
+ROLLBACK COPY SHA256: b5caea4f74056880a976ec3762009cf0c980f9569e271ff5a24c349aa602ba51
+
+BASELINE
+Command: /home/yuukari_ne/My-Project/custom-phone/kernel-build/scripts/ask_user_popup.sh "popup transaction" "fixture"
+Input: prompt=popup transaction; default=fixture
+stdout: fixture
+stderr: (empty)
+exit status: 0
+
+MODIFIED
+Command: /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/MODIFIED_FILE "popup transaction" "fixture"
+Input: prompt=popup transaction; default=fixture
+stdout: fixture
+stderr: (empty)
+exit status: 0
+
+MODIFIED FALLBACK BRANCH
+Command: BAKASU_POPUP_DEFAULT=env-fixture /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/MODIFIED_FILE "popup transaction"
+Input: prompt=popup transaction; environment default=env-fixture
+stdout: env-fixture
+stderr: (empty)
+exit status: 0
+
+ROLLBACK
+Command: /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/ROLLBACK.sh /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/transaction/rollback-copy; then /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/transaction/rollback-copy "popup transaction" "fixture"
+Input: prompt=popup transaction; default=fixture
+stdout: fixture
+stderr: (empty)
+exit status: 0
+restored hash equals original: yes (b5caea4f74056880a976ec3762009cf0c980f9569e271ff5a24c349aa602ba51)
+
+DIFF_FILE: /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/DIFF_FILE
+MODIFIED_FILE: /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/MODIFIED_FILE
+VERIFICATION.txt: /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/VERIFICATION.txt
+ROLLBACK.sh: /home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/ROLLBACK.sh

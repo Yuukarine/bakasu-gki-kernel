@@ -1,0 +1,11 @@
+--- artifacts/transaction/ORIGINAL_TARGET	2026-11-25 09:45:08.138428345 +0700
++++ artifacts/MODIFIED_FILE	2026-11-25 09:46:37.759129364 +0700
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env bash
+ set -euo pipefail
+ prompt=${1:-"Input required"}
+-default_value=${2:-}
++default_value=${2:-${BAKASU_POPUP_DEFAULT:-}}
+ if command -v zenity >/dev/null 2>&1 && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+   zenity --entry --title="BakaSU kernel build" --text="$prompt" --entry-text="$default_value" || printf '%s' "$default_value"
+ elif command -v kdialog >/dev/null 2>&1 && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
