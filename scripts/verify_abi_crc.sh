@@ -5,7 +5,7 @@ usage(){ cat <<'USAGE'
 Usage: verify_abi_crc.sh [--bore] [--reference FILE --candidate FILE] REFERENCE CANDIDATE
 USAGE
 }
-ref= cand= bore=0
+ref='' cand='' bore=0
 while (($#)); do case "$1" in
   -h|--help) usage; exit 0;; --bore) bore=1; shift;; --reference) ref=$2; shift 2;; --candidate) cand=$2; shift 2;;
   --) shift; break;; -*) echo "unknown option: $1" >&2; exit 2;;

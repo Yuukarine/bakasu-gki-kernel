@@ -8,7 +8,7 @@ Usage: resolve_stock_symvers.sh --output FILE [--input FILE] [--url URL]
        [--stock-uname RELEASE] [--source-sha SHA] [--toolchain ID]
 USAGE
 }
-out= input=${STOCK_MODULE_SYMVERS_INPUT:-} url=${STOCK_MODULE_SYMVERS_URL:-}
+out='' input=${STOCK_MODULE_SYMVERS_INPUT:-} url=${STOCK_MODULE_SYMVERS_URL:-}
 cache=${STOCK_MODULE_SYMVERS_CACHE:-} cache_meta=${STOCK_MODULE_SYMVERS_CACHE_META:-}
 prebuilt=${GKI_PREBUILT_MODULE_SYMVERS:-} bootstrap=${BOOTSTRAP_STOCK_SYMVERS:-}
 expected_cache_key=${STOCK_MODULE_SYMVERS_CACHE_KEY:-}
@@ -45,7 +45,7 @@ is_valid(){
 }
 meta_value(){ local key=$1 file=$2; awk -F= -v k="$key" '$1==k {sub(/^[^=]*=/,"",$0); print; exit}' "$file"; }
 cache_valid(){
-  local p=$1 meta actual key value name pair
+  local p=$1 actual key value name pair
   is_valid "$p" || return 1
   if [[ -z $cache_meta ]]; then
     if [[ -d ${cache:-} && -f "$cache/metadata" ]]; then cache_meta="$cache/metadata";
@@ -62,7 +62,7 @@ cache_valid(){
   actual=$(sha256sum "$p" | awk '{print $1}')
   [[ $(meta_value sha256 "$cache_meta") == "$actual" ]] || { echo 'cache rejected: sha256 mismatch' >&2; return 1; }
 }
-candidate= source= resolver_source=
+candidate='' source='' resolver_source=''
 if [[ -n $input ]] && p=$(resolve_path "$input"); then is_valid "$p" && { candidate=$p; source=path; resolver_source=path; }; fi
 if [[ -z $candidate && -n $url ]]; then
   download="${BAKASU_WORK_ROOT:-.tmp}/stock-url-Module.symvers"; mkdir -p "$(dirname -- "$download")"

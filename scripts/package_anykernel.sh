@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Reproducible AnyKernel ZIP/checksum packager.
 set -Eeuo pipefail
-template= image= name= output_dir=artifacts
+template='' image='' name='' output_dir=artifacts
 while (($#)); do case "$1" in
   --template) template=$2; shift 2;; --image) image=$2; shift 2;; --name) name=$2; shift 2;; --output-dir) output_dir=$2; shift 2;; *) echo "unknown option: $1" >&2; exit 2;;
 esac; done
