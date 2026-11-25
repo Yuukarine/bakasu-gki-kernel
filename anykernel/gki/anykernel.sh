@@ -72,7 +72,7 @@ ak3_page_size() {
     value=
     if command -v getconf >/dev/null 2>&1; then value=$(getconf PAGESIZE 2>/dev/null || :); fi
     case "$value" in
-      4096|16384|4k|16k) AK3_PAGE_SIZE=$value; AK3_PAGE_SIZE_SOURCE=getconf;;
+      4096|16384|4k|16k) AK3_PAGE_SIZE=$value; AK3_PAGE_SIZE_SOURCE='getconf';;
       *) value=;;
     esac
     if [ -z "$value" ]; then
@@ -123,7 +123,7 @@ ak3_check_release() {
     [ -n "$stock" ] || ak3_die "cannot parse stock sublevel"
     [ "$built" -ge "$stock" ] || ak3_die "built sublevel $built is below stock $stock"
   fi
-  AK3_RUNTIME_UNAME_R=$actual
+  export AK3_RUNTIME_UNAME_R="$actual"
 }
 
 ak3_check_markers() {
@@ -160,10 +160,10 @@ ak3_main() {
     ak3_part_exists "boot$AK3_SLOT_SUFFIX" || ak3_die "active boot$AK3_SLOT_SUFFIX partition not found"
   fi
   if [ -n "${AK3_BOOT_IMAGE:-}" ]; then boot=$AK3_BOOT_IMAGE; else boot=$(ak3_part_path "boot${AK3_SLOT_SUFFIX}" 2>/dev/null || :); fi
-  [ -n "$boot" ] && ak3_exists "$boot" || ak3_die "boot partition/image not found"
+  if [ -z "$boot" ] || ! ak3_exists "$boot"; then ak3_die "boot partition/image not found"; fi
   init_state=absent; init=
   if [ -n "${AK3_INIT_BOOT_IMAGE:-}" ]; then init=$AK3_INIT_BOOT_IMAGE; elif [ "$AK3_AB" = 1 ]; then init=$(ak3_part_path "init_boot$AK3_SLOT_SUFFIX" 2>/dev/null || :); else init=$(ak3_part_path init_boot 2>/dev/null || :); fi
-  if [ -n "$init" ] && ak3_exists "$init"; then init_state=stock-preserved; ak3_inspect_init_boot "$init"; elif [ "$AK3_AB" = 1 ]; then
+  if [ -n "$init" ] && ak3_exists "$init"; then init_state=stock-preserved; ak3_inspect_init_boot "$init"; elif [ "$AK3_AB" = "1" ]; then
     if ak3_part_exists init_boot_a || ak3_part_exists init_boot_b; then ak3_die "init_boot missing for active slot $AK3_SLOT_SUFFIX"; fi
     printf '%s\n' 'init_boot: absent on A/B device, inspection skipped'
   else printf '%s\n' 'init_boot: absent, inspection skipped'; fi
