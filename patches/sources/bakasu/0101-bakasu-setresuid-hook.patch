@@ -1,0 +1,11 @@
+--- a/kernel/sys.c
++++ b/kernel/sys.c
+@@ -1040,6 +1040,12 @@
+ static long __sys_setresuid(uid_t ruid, uid_t euid, uid_t suid)
+ {
++	#ifdef CONFIG_KSU
++	extern int ksu_handle_setresuid(uid_t ruid, uid_t euid, uid_t suid);
++	ksu_handle_setresuid(ruid, euid, suid);
++	#endif
++
+ 	struct cred *new;
