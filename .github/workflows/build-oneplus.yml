@@ -71,6 +71,8 @@ jobs:
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
           key: stock-module-symvers-oneplus-${{ matrix.kmi }}-${{ matrix.stock_uname }}-${{ matrix.page_size }}-${{ github.sha }}
+          restore-keys: |
+            stock-module-symvers-oneplus-${{ matrix.kmi }}-${{ matrix.stock_uname }}-${{ matrix.page_size }}-
       - name: Resolve stock Module.symvers
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         id: symvers
@@ -81,7 +83,8 @@ jobs:
         run: |
           set -euo pipefail
           cache_key="stock-module-symvers-oneplus-${KMI}-${STOCK_UNAME}-${PAGE_SIZE}-${GITHUB_SHA}"
-          args=(--output "$RUNNER_TEMP/stock-Module.symvers" --cache "$RUNNER_TEMP/cache-Module.symvers" --cache-meta "$RUNNER_TEMP/cache-Module.symvers/metadata" --prebuilt "${PREBUILT:-}" --expected-cache-key "$cache_key" --kmi "$KMI" --page-size "$PAGE_SIZE" --stock-uname "$STOCK_UNAME" --source-sha "$SOURCE_SHA" --toolchain "$TOOLCHAIN_ID")
+          cache_prefix="stock-module-symvers-oneplus-${KMI}-${STOCK_UNAME}-${PAGE_SIZE}"
+          args=(--output "$RUNNER_TEMP/stock-Module.symvers" --cache "$RUNNER_TEMP/cache-Module.symvers" --cache-meta "$RUNNER_TEMP/cache-Module.symvers/metadata" --prebuilt "${PREBUILT:-}" --expected-cache-key "$cache_prefix" --kmi "$KMI" --page-size "$PAGE_SIZE" --stock-uname "$STOCK_UNAME" --source-sha "$SOURCE_SHA" --toolchain "$TOOLCHAIN_ID")
           [[ -n "${STOCK_PATH:-}" ]] && args+=(--input "$STOCK_PATH")
           [[ -n "${STOCK_URL:-}" ]] && args+=(--url "$STOCK_URL")
           if [[ "${{ inputs.bootstrap_stock_symvers || false }}" == true ]]; then args+=(--bootstrap 'KERNEL_SOURCE_DIR=.tmp/kernel_src/kernel_platform/common STOCK_KERNEL_OUT=.tmp/stock-out KBUILD_MODPOST_WARN=1 scripts/bootstrap_stock_symvers.sh'); fi
@@ -181,3 +184,10 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts
           printf 'source_sha=%s\nkmi=%s\npage_size=%s\nstock_uname=%s\nresolver_source=%s\nresolver_sha256=%s\n' "$(git -C .tmp/kernel_src/kernel_platform/common rev-parse HEAD)" "$KMI" "$PAGE_SIZE" "$STOCK_UNAME" "$(grep '^resolver_source=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" "$(grep '^sha256=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" > artifacts/oneplus-provenance.txt
+      - name: Upload AnyKernel3 artifact
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: oneplus-${{ matrix.device }}-${{ matrix.stock_uname }}
+          path: artifacts/*
+          if-no-files-found: error

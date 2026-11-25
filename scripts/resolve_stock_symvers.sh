@@ -53,7 +53,7 @@ cache_valid(){
   fi
   [[ -r ${cache_meta:-} ]] || { echo "cache rejected: metadata missing for $p" >&2; return 1; }
   key=$(meta_value cache_key "$cache_meta"); [[ -n $key ]] || { echo 'cache rejected: cache_key missing' >&2; return 1; }
-  if [[ -n $expected_cache_key && $key != "$expected_cache_key" ]]; then echo "cache rejected: cache_key mismatch" >&2; return 1; fi
+  if [[ -n $expected_cache_key && $key != "$expected_cache_key" && $key != "$expected_cache_key-"* ]]; then echo "cache rejected: cache_key mismatch" >&2; return 1; fi
   for pair in "kmi|$expected_kmi" "page_size|$expected_page" "stock_uname|$expected_uname" "source_sha|$expected_source_sha" "toolchain|$expected_toolchain"; do
     name=${pair%%|*}; value=${pair#*|}
     [[ -z $value ]] && continue
