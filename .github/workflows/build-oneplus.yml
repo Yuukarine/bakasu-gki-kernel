@@ -119,7 +119,9 @@ jobs:
         run: |
           set -euo pipefail
           git clone --depth 1 --branch "$NOMOUNT_REF" "$NOMOUNT_REPO" .tmp/NoMount-Suite
-          git -C .tmp/kernel_src/kernel_platform/common apply "$GITHUB_WORKSPACE/.tmp/NoMount-Suite/hookless/patches/nomount_kernel_integration.patch"
+          common=.tmp/kernel_src/kernel_platform/common
+          git -C "$common" apply "$GITHUB_WORKSPACE/.tmp/NoMount-Suite/hookless/patches/nomount_kernel_integration.patch"
+          cp .tmp/NoMount-Suite/hookless/src/nomount.c .tmp/NoMount-Suite/hookless/src/nomount.h "$common/fs/"
       - name: Set custom BakaSU driver display name
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:
