@@ -164,7 +164,7 @@ ak3_main() {
   init_state=absent; init=
   if [ -n "${AK3_INIT_BOOT_IMAGE:-}" ]; then init=$AK3_INIT_BOOT_IMAGE; elif [ "$AK3_AB" = 1 ]; then init=$(ak3_part_path "init_boot$AK3_SLOT_SUFFIX" 2>/dev/null || :); else init=$(ak3_part_path init_boot 2>/dev/null || :); fi
   if [ -n "$init" ] && ak3_exists "$init"; then
-    init_state=stock-preserved
+    init_state='stock-preserved'
     ak3_inspect_init_boot "$init"
   else
     case "$AK3_AB" in
