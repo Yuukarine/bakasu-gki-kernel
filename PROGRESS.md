@@ -55,6 +55,14 @@ All commands and artifacts below are inside this root; Luna worktrees are under
 - [x] YAGNI review: no KSUN/Non-GKI path, no custom SELinux/DeviceTree C patch, no fabricated Kconfig symbol for patch-only features, no BBRv3/ADIOS/`-O3`, no duplicate external-module responsibilities, and no generated heavy artifacts outside ignored `.tmp/`.
 - [x] Final state is ready for a real source/toolchain run; build completion remains gated on a real source checkout, stock `Module.symvers`, zero CRC drift, exact KMI, and package checksum.
 
+## Custom BakaSU driver display-name audit (2026-11-25)
+
+- [x] Downloaded `kernel/Kbuild` and `kernel/Makefile` from the manifest source `https://github.com/Baka-SU/BakaSU.git#main` into `.tmp/bakasu-source-check/`; `Kbuild` defines `KSU_VERSION_FULL` on the first assignment (then performs placeholder substitutions), `KSU_VERSION` is a separate numeric expression, and `Makefile` has no driver-name assignment. Temporary source files were removed after inspection.
+- [x] Added `scripts/set_bakasu_driver_name.sh`. Empty `CUSTOM_DRIVER_NAME` is a no-op; non-empty values are limited to 64 Unicode characters, reject controls/newlines and `"`, `\\`, backtick, `$`, whitespace, and unsupported punctuation, then atomically replace only the first `KSU_VERSION_FULL :=` line in the discovered BakaSU `Kbuild`. `KSU_VERSION`, `CONFIG_LOCALVERSION`, `uname -r`, and exported symbols are untouched.
+- [x] Added `custom_driver_name` string inputs (default empty) to both build workflows. The value is passed only through `env:` and the helper runs after source integration and before `olddefconfig`.
+- [x] Added `tests/test_driver_name.sh` and CI invocation. Fixture evidence: empty value preserves the file SHA; `v4.2.0-⚡Yuukari⚡@BakaSU` updates the exact display assignment while preserving `KSU_VERSION := 30701`; quote, dollar, newline, and 65-character values fail with `custom_driver_name: FAIL:`.
+- [x] README usage documented. `bash -n`, YAML parse, driver-name fixtures, `git diff --check`, and the existing Kconfig/CRC/AnyKernel gates pass.
+
 ## Pre-push production audit (2026-11-25)
 
 - [x] Placeholder/stub scan over `.github/`, `patches/`, `configs/`, `scripts/`, and `anykernel/`: no `TODO`, `FIXME`, `placeholder`, `example.com`, `CHANGE_ME`, `0000000`, or mock download/no-op command remained.

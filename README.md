@@ -18,6 +18,10 @@ Use **build-gki** for the shared RedMagic/Xiaomi matrix: `android13-5.15`, `andr
 
 Every workflow records source SHA, KMI generation, page size, stock `uname -r`, resolver source and SHA256 artifacts. Cache metadata is checked against KMI/page size/stock banner/source/toolchain before reuse; a cache miss can bootstrap an unpatched stock baseline. CI never flashes a device.
 
+### Optional BakaSU display name
+
+Both workflows expose `custom_driver_name`. Leave it empty to retain the BakaSU default, or enter a name such as `v4.2.0-⚡Yuukari⚡@BakaSU` (maximum 64 characters). The helper changes only `KSU_VERSION_FULL` in BakaSU's `kernel/Kbuild`; it never changes `KSU_VERSION`, `CONFIG_LOCALVERSION`, `uname -r`, or exported kernel symbols.
+
 ## Flash rules
 
 - **OnePlus:** use the matching exact `uname -r`/KMI banner; do not flash across sublevels. Test with `fastboot boot` first where supported.

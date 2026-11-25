@@ -37,3 +37,4 @@ jobs:
           tests/test_kconfig.sh
           tests/test_abi_crc.sh
           tests/test_anykernel.sh
+          tests/test_driver_name.sh
