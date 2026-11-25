@@ -133,6 +133,7 @@ jobs:
           git clone --depth 1 https://github.com/Bouteillepleine/kernel_patches.git .tmp/kernel_patches
           common=.tmp/kernel_src/kernel_platform/common
           COMMON_KERNEL_FOLDER="$PWD/$common" SUSFS_FOLDER="$PWD/.tmp/susfs" KSU_FOLDER="$PWD/.tmp/BakaSU" ANDROID_VER=android14 KERNEL_VER=6.1 SUSFS_KERNEL_BRANCH=gki-android14-6.1 bash .tmp/kernel_patches/scripts/apply_susfs_kernel.sh all
+          sed -i '/#define SUSFS_LOGE(fmt, ...)/a #define SUSFS_LOGI_RL(fmt, ...) do { } while (0)\n#define SUSFS_LOGE_RL(fmt, ...) do { } while (0)' "$common/fs/susfs.c"
       - name: Set custom BakaSU driver display name
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:
