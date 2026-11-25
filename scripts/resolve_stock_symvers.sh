@@ -12,7 +12,8 @@ while (($#)); do case $1 in
   --help|-h) usage; exit 0;;
   --output) out=$2; shift 2;; --input) input=$2; shift 2;; --cache) cache=$2; shift 2;;
   --prebuilt) prebuilt=$2; shift 2;; --bootstrap) bootstrap=$2; shift 2;;
-  *) echo "unknown option: $1" >&2; usage >&2; exit 2;;
+  -*) echo "unknown option: $1" >&2; usage >&2; exit 2;;
+  *) if [[ -z $input ]]; then input=$1; elif [[ $out == ${RUNNER_TEMP:-${TMPDIR:-/tmp}}/stock-Module.symvers ]]; then out=$1; else echo "unexpected argument: $1" >&2; exit 2; fi; shift;;
 esac; done
 [[ -n $out ]] || out=${RUNNER_TEMP:-${TMPDIR:-/tmp}}/stock-Module.symvers
 is_valid() { [[ -f $1 && -s $1 ]] && grep -qEv '^[[:space:]]*(#|$)' "$1"; }
