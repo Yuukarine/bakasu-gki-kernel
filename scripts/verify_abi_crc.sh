@@ -17,8 +17,8 @@ esac; done
 tmp="${BAKASU_WORK_ROOT:-.tmp}/abi-crc.$$"; mkdir -p "$tmp"; trap 'rm -rf "$tmp"' EXIT
 parse(){ local in=$1 out=$2; awk 'BEGIN{FS="[[:space:]]+"} /^[[:space:]]*#/||NF==0{next} NF<2{bad=1; print "malformed line " NR > "/dev/stderr"; next} { c=tolower($1); s=$2; if (s in seen && seen[s]!=c){bad=1; print "duplicate CRC: " s > "/dev/stderr"} seen[s]=c } END{for(s in seen) print s "\t" seen[s]; if(bad) exit 3}' "$in" | LC_ALL=C sort -k1,1 > "$out"; }
 parse "$ref" "$tmp/ref" || exit 2; parse "$cand" "$tmp/cand" || exit 2
-awk -F '\t' 'NR==FNR{a[$1]=$2;next}{b[$1]=$2} END{for(s in a){if(!(s in b)){print "missing candidate symbol: " s; missing++}else if(a[s]!=b[s]){print "CRC mismatch: " s " reference=" a[s] " candidate=" b[s]; changed++}}for(s in b)if(!(s in a)){print "added candidate symbol: " s; added++} drift=changed+missing+added; print "__SUMMARY__\t" length(a) "\t" drift "\t" changed "\t" missing+added; if(drift)exit 1}' "$tmp/ref" "$tmp/cand" > "$tmp/report" || status=$?
+awk -F '\t' 'NR==FNR{a[$1]=$2;next}{b[$1]=$2} END{for(s in a){if(!(s in b)){print "missing candidate symbol: " s; missing++}else if(a[s]!=b[s]){print "CRC mismatch: " s " reference=" a[s] " candidate=" b[s]; changed++}}for(s in b)if(!(s in a)){print "added candidate symbol: " s; added++} drift=changed+missing; print "__SUMMARY__\t" length(a) "\t" drift "\t" changed "\t" missing "\t" added; if(drift)exit 1}' "$tmp/ref" "$tmp/cand" > "$tmp/report" || status=$?
 status=${status:-0}; sed '/^__SUMMARY__/d' "$tmp/report"; summary=$(grep '^__SUMMARY__' "$tmp/report" || true); [[ -n $summary ]] || { cat "$tmp/report" >&2; exit 2; }
-IFS=$'\t' read -r _ total drift changed missing <<< "$summary"
-if (( status != 0 || drift != 0 )); then echo "CRC CHECK: FAIL ($drift drift; changed=$changed missing_or_added=$missing; reference_symbols=$total; bore=$bore)" >&2; exit 1; fi
-echo "CRC CHECK: PASS ($total symbols, zero drift; bore=$bore)"
+IFS=$'\t' read -r _ total drift changed missing added <<< "$summary"
+if (( status != 0 || drift != 0 )); then echo "CRC CHECK: FAIL ($drift drift; changed=$changed missing=$missing added=$added; reference_symbols=$total; bore=$bore)" >&2; exit 1; fi
+echo "CRC CHECK: PASS ($total symbols, zero CRC drift; added=$added non-reference exports; bore=$bore)"
