@@ -21,3 +21,11 @@ AGENTS.md
 skills-lock.json
 scripts/ask_user_popup.sh
 scripts/verify_skill.sh
+
+# Local AI config
+.agents/
+.claude/
+.codex/
+.claudeignore
+.codexignore
+AGENTS.md

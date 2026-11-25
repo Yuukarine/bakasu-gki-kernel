@@ -1,8 +1,0 @@
-# Heavy kernel/build artifacts
-out/
-.tmp/
-kernel_src/
-toolchains/
-*.zip
-*.img
-Image*
