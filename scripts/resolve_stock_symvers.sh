@@ -76,7 +76,9 @@ fi
 if [[ -z $candidate ]] && p=$(resolve_path "$prebuilt"); then is_valid "$p" && { candidate=$p; source=prebuilt; resolver_source=prebuilt; }; fi
 if [[ -z $candidate && -n $bootstrap ]]; then
   boot="${BAKASU_WORK_ROOT:-.tmp}/bootstrap-Module.symvers"; mkdir -p "$(dirname -- "$boot")"
-  bash -c "$bootstrap" > "$boot" || { echo 'bootstrap_stock_symvers command failed' >&2; exit 1; }
+  raw="$boot.raw"
+  bash -c "$bootstrap" > "$raw" || { echo 'bootstrap_stock_symvers command failed' >&2; exit 1; }
+  awk 'NF >= 2 && $1 ~ /^0x[[:xdigit:]]+$/ && $2 !~ /^#/ {print}' "$raw" > "$boot"
   is_valid "$boot" || { echo 'bootstrap produced invalid Module.symvers' >&2; exit 1; }
   candidate=$boot; source=bootstrap; resolver_source=bootstrap
 fi
