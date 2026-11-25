@@ -5,3 +5,6 @@ toolchains/
 *.zip
 *.img
 Image*
+
+artifacts/
+PROGRESS.md

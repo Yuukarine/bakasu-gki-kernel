@@ -1,5 +1,0 @@
-source	patch	config	image
-OnePlusOSS/OGKI	patches/sources/faster-sdp-900ma	configs/bakasu_stealth.fragment	artifacts/oneplus-*.zip
-OnePlusOSS/OGKI	patches/sources/bore/bore.patch	configs/features/oneplus-bore.fragment	artifacts/oneplus-*-bore.zip
-AOSP-GKI-2.0	patches/sources/susfs-v2.4.0	configs/bakasu_stealth.fragment	artifacts/gki-*.zip
-AOSP-GKI-2.0	patches/sources/nomount	configs/bakasu_stealth.fragment	artifacts/gki-*.zip

@@ -1,4 +1,0 @@
-baseline_status=0
-modified_status=0
-fallback_status=0
-rollback_status=0
