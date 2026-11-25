@@ -8,6 +8,7 @@ on:
       stock_symvers_url: {description: Optional stock Module.symvers URL, required: false, type: string}
       gki_prebuilt_symvers: {description: Optional GKI prebuilt Module.symvers path, required: false, type: string}
       custom_driver_name: {description: Optional BakaSU display name (does not change version code), required: false, default: "", type: string}
+      target_stock_uname: {description: Optional single matrix target to run, required: false, default: "", type: string}
       bootstrap_stock_symvers: {description: Build unpatched stock baseline on cache miss, required: false, default: false, type: boolean}
       enable_bore: {description: Apply BORE only when HMBIRD is disabled, required: false, default: false, type: boolean}
       toolchain: {description: Toolchain identity for cache validation, required: false, default: clang-r547379, type: string}
@@ -16,6 +17,7 @@ on:
 permissions: {contents: read}
 jobs:
   build:
+    if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
     strategy:
       fail-fast: false
       matrix:
