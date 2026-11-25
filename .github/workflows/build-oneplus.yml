@@ -116,18 +116,6 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/.tmp/BakaSU/kernel" "$common/drivers/kernelsu"
           grep -q 'obj-$(CONFIG_KSU) += kernelsu/' "$common/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$common/drivers/Makefile"
           grep -q 'source "drivers/kernelsu/Kconfig"' "$common/drivers/Kconfig" || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' "$common/drivers/Kconfig"
-      - name: Apply SUSFS v2.4.0 kernel integration
-        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
-        run: |
-          set -euo pipefail
-          git clone --depth 1 --branch "$SUSFS_REF" "$SUSFS_REPO" .tmp/susfs
-          common=.tmp/kernel_src/kernel_platform/common
-          cp .tmp/susfs/kernel_patches/fs/susfs.c "$common/fs/"
-          cp .tmp/susfs/kernel_patches/include/linux/susfs.h .tmp/susfs/kernel_patches/include/linux/susfs_def.h "$common/include/linux/"
-          patch="$GITHUB_WORKSPACE/.tmp/susfs/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch"
-          git -C "$common" apply --check "$patch"
-          git -C "$common" apply "$patch"
-
       - name: Apply NoMount kernel integration
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
@@ -136,6 +124,15 @@ jobs:
           common=.tmp/kernel_src/kernel_platform/common
           git -C "$common" apply "$GITHUB_WORKSPACE/.tmp/NoMount-Suite/hookless/patches/nomount_kernel_integration.patch"
           cp .tmp/NoMount-Suite/hookless/src/nomount.c .tmp/NoMount-Suite/hookless/src/nomount.h "$common/fs/"
+
+      - name: Apply SUSFS v2.4.0 kernel integration
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$SUSFS_REF" "$SUSFS_REPO" .tmp/susfs
+          git clone --depth 1 https://github.com/Bouteillepleine/kernel_patches.git .tmp/kernel_patches
+          common=.tmp/kernel_src/kernel_platform/common
+          COMMON_KERNEL_FOLDER="$PWD/$common" SUSFS_FOLDER="$PWD/.tmp/susfs" KSU_FOLDER="$PWD/.tmp/BakaSU" ANDROID_VER=android14 KERNEL_VER=6.1 SUSFS_KERNEL_BRANCH=gki-android14-6.1 bash .tmp/kernel_patches/scripts/apply_susfs_kernel.sh all
       - name: Set custom BakaSU driver display name
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:
