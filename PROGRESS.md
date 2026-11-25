@@ -1,21 +1,56 @@
-# BakaSU GKI 2.0 / OGKI Agent Skill — Progress
+# BakaSU GKI 2.0 / OGKI — execution record
 
-- [x] Plan recorded in this file before implementation; `$PROJECT_ROOT` bound to `/home/yuukari_ne/My-Project/custom-phone/kernel-build`.
-- [x] Blocking popup created first at `scripts/ask_user_popup.sh`, executable, syntax-checked, and smoke-tested.
-- [x] Bootstrap completed in-jail: `npx --yes autoskills -y` exit 0 (installed `bash-defensive-patterns` and wrote `skills-lock.json`); `npx --yes skills find` exit 0. The registry package named `find-skills` returned npm 404 and is recorded in `.tmp/bootstrap/find-skills.log`.
-- [x] Compact skill written with frontmatter, BakaSU-only two-branch architecture, Golden Stack, forbidden changes, workflow integrations, and verification gates.
-- [x] Root `AGENTS.md`, `.claudeignore`, `.codexignore`, and CLI symlinks under `.codex/skills/` and `.claude/skills/` created.
-- [x] Verification helper and transaction roles created; all checks, reference audit, diff reconstruction, and rollback evidence pass.
+Project root: `/home/yuukari_ne/My-Project/custom-phone/kernel-build`.
+All commands and artifacts below are inside this root; Luna worktrees are under
+`.tmp/worktrees/` only.
 
-## Evidence ledger
+## Plan and bootstrap
 
-- Popup syntax: `bash -n scripts/ask_user_popup.sh` → exit 0.
-- Popup smoke: `./scripts/ask_user_popup.sh "popup smoke test" "fixture"` → `fixture`, exit 0.
-- Skill/config verification: `./scripts/verify_skill.sh` → `skill verification: PASS`, exit 0.
-- Skill size: `wc -c .agents/skills/bakasu-gki-kernel/SKILL.md` → `4686` bytes.
-- Transaction target: `scripts/ask_user_popup.sh`; changed field is the `default_value` fallback branch accepting `BAKASU_POPUP_DEFAULT`.
-- Baseline: explicit `fixture` input → stdout `fixture`, stderr empty, exit 0; SHA256 `b5caea4f74056880a976ec3762009cf0c980f9569e271ff5a24c349aa602ba51`.
-- Modified: same input → stdout `fixture`, stderr empty, exit 0; environment fallback → `env-fixture`, exit 0.
-- Rollback: `artifacts/ROLLBACK.sh artifacts/transaction/rollback-copy` then same input → `fixture`, exit 0; restored SHA equals baseline.
-- Content/reference audit and diff reconstruction → `PASS` (all required symbols, links, and paths resolve).
-- Four reopened role paths: `artifacts/MODIFIED_FILE`, `artifacts/DIFF_FILE`, `artifacts/VERIFICATION.txt`, executable `artifacts/ROLLBACK.sh`.
+- [x] Plan recorded before implementation; the bound target is this project root.
+- [x] Blocking popup created first: `scripts/ask_user_popup.sh` is executable; `bash -n scripts/ask_user_popup.sh` exits 0 and smoke input returns `fixture` (exit 0).
+- [x] `npx --yes autoskills -y` exited 0; `npx --yes skills find` exited 0. The npm package named `find-skills` returned 404 and is recorded as a non-blocking bootstrap note in the prior ledger.
+- [x] Required local workflow references are in `SKILL.md`: `rtk`, `graphify`, `ponytail`, `context-mode`, `token-savior`, `caveman lite`, `systematic-debugging`, and `verification-before-completion`.
+- [x] `.claudeignore` and `.codexignore` exclude `out/`, `.tmp/`, `kernel_src/`, `toolchains/`, `*.zip`, `*.img`, and `Image*`.
+- [x] Skill and CLI links are present: `.agents/skills/bakasu-gki-kernel/SKILL.md`, `.codex/skills/bakasu-gki-kernel`, `.claude/skills/bakasu-gki-kernel`; `AGENTS.md` references the skill.
+
+## Implemented architecture
+
+- [x] Shared BakaSU/SUSFS v2.4.0/NoMount fragment is in `configs/bakasu_stealth.fragment`; protected debug/ABI flags remain enabled and log/debug/localversion leak flags are disabled.
+- [x] GKI fragment locks `CONFIG_HZ_250=y`; OnePlus fragment contains no fabricated symbols. Conditional Kconfig is limited to `configs/features/oneplus-bore.fragment`; patch-only features are declared in `patches/sources/manifest.tsv` and applied separately by `scripts/apply_patch_sources.sh`.
+- [x] OnePlus BORE order is enforced: merge `oneplus-bore.fragment` → apply BORE patch → `olddefconfig` → `verify_kconfig` → build → `verify_abi_crc.sh --bore` → package.
+- [x] Workflows include OnePlus Ace 3V Android 16/OOS16/COS16 with KMI `android14-6.1` and both stock banners, plus GKI families `android13-5.15`, `android14-6.1`, `android15-6.6`, and `android16-6.12`; Android 16 disables BBG/Droidspaces/NTSync.
+- [x] AnyKernel templates are POSIX `sh`, use `magiskboot unpack`/`KERNEL_FMT`, preserve stock `init_boot`, enforce exact `uname -r`, supported KMI generation, page-size rules, and no sublevel downgrade.
+
+## Resolver and verification gates
+
+- [x] `scripts/verify_kconfig.sh` parses generated assignments and unset lines, checks every required stealth flag, rejects `ENABLE_LOG`/debug/localversion leaks, and requires `DEBUG_FS`, `KPROBES`, `FTRACE`, `AUDIT`, and `PRINTK`.
+- [x] `scripts/resolve_stock_symvers.sh` priority is `path → url → cache → prebuilt → bootstrap`; cache hits require valid format, matching key/KMI/page-size/stock `uname -r`/source SHA/toolchain, and SHA256 metadata. It prints exactly one `resolver_source=path|url|cache|prebuilt|bootstrap`.
+- [x] `build-oneplus.yml` and `build-gki.yml` expose path/URL/prebuilt/bootstrap inputs, restore Actions cache before prebuilt, bootstrap a stock baseline when selected, write metadata, save the cache, run CRC gates, and package ZIP plus SHA256 checksum.
+- [x] `scripts/verify_abi_crc.sh --bore` hard-fails any changed/missing/added symbol; package steps occur only after the gate.
+- [x] `anykernel/*/anykernel.sh` resolver order is `AK3_SLOT_SUFFIX` → ak3-core slot → property/cmdline → slot-specific partition detection. It checks both `/dev/block/by-name` and `/dev/block/bootdevice/by-name`, distinguishes A/B from non-A/B, skips absent `init_boot` only under the approved conditions, and rejects opposite-slot `init_boot`.
+- [x] Page-size resolver order is `AK3_PAGE_SIZE` → `getconf PAGESIZE` → filtered `KernelPageSize` values in `/proc/self/smaps`; hugepage VMAs are ignored, mixed/invalid base sizes fail, and output records `page_size_source=dry-run|getconf|smaps`.
+- [x] `init_boot` ramdisk marker policy rejects the six exact root-relative paths `kernelsu.ko`, `ksuinit`, `magiskinit`, `.backup`, `.magisk`, `.backup/.magisk`; near names and nested look-alikes are allowed.
+- [x] `artifacts/graphify.tsv` records source → patch → config → image provenance.
+
+## Executed verification evidence
+
+- [x] `./scripts/verify_skill.sh` → `skill verification: PASS` (exit 0).
+- [x] `./tests/test_kconfig.sh` → `kconfig fixtures: PASS` (exit 0). Fixtures prove a clean config passes and `CONFIG_KSU_SUSFS_ENABLE_LOG=y` or `CONFIG_DEBUG_FS` disabled fails.
+- [x] `./tests/test_abi_crc.sh` → `ABI CRC/resolver fixtures: PASS` (exit 0). Fixtures prove zero drift passes, one CRC mismatch fails, and resolver sources path/cache/prebuilt/bootstrap; invalid cache metadata falls back to prebuilt.
+- [x] `./tests/test_anykernel.sh` → `AnyKernel fixtures: PASS` (exit 0). Fixtures cover empty slot property with slot partitions, active-slot `init_boot` absence skip, opposite-slot fail, both partition roots, all six exact markers, near-name allow-list, smaps hugepage filtering, Android 15 `-4k` suffix, and sublevel downgrade rejection.
+- [x] `bash -n scripts/*.sh tests/*.sh` exited 0.
+- [x] `sh -n anykernel/oneplus/anykernel.sh anykernel/gki/anykernel.sh` exited 0.
+- [x] `shellcheck` was probed; it is not installed in this environment. CI conditionally runs `shellcheck -s bash` for scripts and `shellcheck -s sh` for `anykernel/*/*.sh` when available.
+- [x] PyYAML parsed all workflows: `YAML OK: .github/workflows/ci-validate.yml`, `YAML OK: .github/workflows/build-oneplus.yml`, `YAML OK: .github/workflows/build-gki.yml` (exit 0). `actionlint` was probed and is not installed locally; CI runs it when available.
+- [x] Package fixture: `scripts/package_anykernel.sh` created a ZIP and SHA256 sidecar; `unzip -l` showed `anykernel.sh` and `Image`, and `sha256sum -c` returned `OK` (exit 0). A cleanup/log ordering probe first returned exit 1 after deleting its log; the changed rerun above completed with `package fixture: PASS`.
+- [x] `git diff --check` exited 0; temporary fixture/debug files were removed. Only declared project artifacts and `.tmp/worktrees/` remain.
+
+## Transaction roles
+
+- [x] Reopened absolute role paths: `artifacts/MODIFIED_FILE`, `artifacts/DIFF_FILE`, `artifacts/VERIFICATION.txt`, executable `artifacts/ROLLBACK.sh`.
+- [x] Resolver transaction target is `scripts/resolve_stock_symvers.sh`; baseline, modified, and rollback commands all returned exit 0 with `resolver_source=path`, and rollback restored the exact original SHA. The complete command/input/stdout/stderr ledger is in `artifacts/VERIFICATION.txt`.
+
+## Final review
+
+- [x] YAGNI review: no KSUN/Non-GKI path, no custom SELinux/DeviceTree C patch, no fabricated Kconfig symbol for patch-only features, no BBRv3/ADIOS/`-O3`, no duplicate external-module responsibilities, and no generated heavy artifacts outside ignored `.tmp/`.
+- [x] Final state is ready for a real source/toolchain run; build completion remains gated on a real source checkout, stock `Module.symvers`, zero CRC drift, exact KMI, and package checksum.

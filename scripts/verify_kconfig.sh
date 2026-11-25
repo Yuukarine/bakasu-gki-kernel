@@ -1,98 +1,35 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-
-usage() {
-  cat <<'USAGE'
-Usage: verify_kconfig.sh [OPTIONS]
-
-Validate a generated kernel .config against the BakaSU/SUSFS fragments.
-  -c, --config PATH       generated .config (default: .config)
-  -b, --branch NAME       aosp-gki or oneplus-ogki (default: BAKASU_BRANCH or aosp-gki)
-  -f, --fragments DIR     fragment directory (default: configs)
-  -h, --help              show this help
+usage(){ cat <<'USAGE'
+Usage: verify_kconfig.sh --config FILE [--branch aosp-gki|oneplus-ogki] [--fragments DIR]
 USAGE
 }
-
-die() { printf 'kconfig verification: FAIL: %s\n' "$*" >&2; exit 1; }
-
-config_file=.config
-branch=${BAKASU_BRANCH:-aosp-gki}
-fragment_dir=configs
-while (($#)); do
-  case $1 in
-    -c|--config) (($# >= 2)) || die "$1 requires a path"; config_file=$2; shift 2 ;;
-    -b|--branch) (($# >= 2)) || die "$1 requires a branch"; branch=$2; shift 2 ;;
-    -f|--fragments) (($# >= 2)) || die "$1 requires a directory"; fragment_dir=$2; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
-    *) die "unknown option: $1 (use --help)" ;;
-  esac
-done
-
-case $branch in
-  aosp-gki|oneplus-ogki) ;;
-  *) die "unsupported branch '$branch' (expected aosp-gki or oneplus-ogki)" ;;
-esac
-[[ -f $config_file ]] || die "config not found: $config_file"
-[[ -d $fragment_dir ]] || die "fragment directory not found: $fragment_dir"
-
-shared=$fragment_dir/shared.config
-branch_fragment=$fragment_dir/$branch.config
-[[ -f $shared ]] || die "missing shared fragment: $shared"
-[[ -f $branch_fragment ]] || die "missing branch fragment: $branch_fragment"
-
-assignment_re='^CONFIG_[A-Za-z0-9_]+=(y|m|n|"[^" ]*")$'
-# Keep the expression in a variable so [[ =~ ]] does not parse its quotes.
-declare -A fragment_values=()
-for fragment in "$shared" "$branch_fragment"; do
-  while IFS= read -r line || [[ -n $line ]]; do
-    [[ -z $line || $line == \#* ]] && continue
-    [[ $line =~ $assignment_re ]] || die "malformed assignment in $fragment: $line"
-    symbol=${line%%=*}
-    if [[ ${fragment_values[$symbol]+yes} ]]; then
-      die "duplicate fragment assignment for $symbol"
-    fi
-    fragment_values[$symbol]=${line#*=}
-  done < "$fragment"
-done
-
-declare -A config_values=()
-while IFS= read -r line || [[ -n $line ]]; do
-  [[ -z $line || $line == \#* ]] && continue
-  [[ $line =~ $assignment_re ]] || continue
-  symbol=${line%%=*}
-  [[ ${config_values[$symbol]+yes} ]] && die "duplicate generated assignment for $symbol"
-  config_values[$symbol]=${line#*=}
-done < "$config_file"
-
-required=(
-  CONFIG_NOMOUNT=y
-  CONFIG_SECURITY_DMESG_RESTRICT=y
-  CONFIG_KSU_SUSFS_SUS_PATH=y
-  CONFIG_KSU_SUSFS_SUS_MOUNT=y
-  CONFIG_KSU_SUSFS_SUS_KSTAT=y
-  CONFIG_KSU_SUSFS_SPOOF_UNAME=y
-  CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
-  CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-  CONFIG_KSU_SUSFS_SUS_MAP=y
-  CONFIG_KSU_SUSFS_ENABLE_LOG=n
-  'CONFIG_LOCALVERSION=""'
-)
-if [[ $branch == aosp-gki ]]; then
-  required+=(CONFIG_HZ_250=y)
-fi
-
-for expected in "${required[@]}"; do
-  symbol=${expected%%=*}
-  value=${expected#*=}
-  [[ ${config_values[$symbol]+yes} ]] || die "missing $expected in $config_file"
-  [[ ${config_values[$symbol]} == "$value" ]] || die "wrong value for $symbol: expected $value, got ${config_values[$symbol]}"
-  [[ ${fragment_values[$symbol]+yes} ]] || die "required symbol $symbol is not declared by a fragment"
-  [[ ${fragment_values[$symbol]} == "$value" ]] || die "wrong fragment value for $symbol: expected $value, got ${fragment_values[$symbol]}"
-done
-
-for symbol in CONFIG_DEBUG_FS CONFIG_KPROBES CONFIG_FTRACE CONFIG_AUDIT CONFIG_PRINTK; do
-  [[ ${config_values[$symbol]+yes} ]] || die "missing protected feature $symbol"
-  [[ ${config_values[$symbol]} == y ]] || die "protected feature disabled: $symbol=${config_values[$symbol]}"
-done
-
-printf 'kconfig verification: PASS (%s, %s)\n' "$branch" "$config_file"
+die(){ printf 'kconfig verification: FAIL: %s\n' "$*" >&2; exit 1; }
+config=.config; branch=${BAKASU_BRANCH:-aosp-gki}; dir=configs
+while (($#)); do case "$1" in
+  -h|--help) usage; exit 0;; -c|--config) [[ $# -gt 1 ]] || die 'missing config path'; config=$2; shift 2;;
+  -b|--branch) [[ $# -gt 1 ]] || die 'missing branch'; branch=$2; shift 2;;
+  -f|--fragments) [[ $# -gt 1 ]] || die 'missing fragment dir'; dir=$2; shift 2;;
+  *) die "unknown option: $1";; esac; done
+[[ -r $config ]] || die "config not readable: $config"
+case "$branch" in aosp-gki|oneplus-ogki) ;; *) die "unsupported branch: $branch";; esac
+shared=$dir/bakasu_stealth.fragment; [[ -r $shared ]] || die "missing fragment: $shared"
+if [[ $branch == aosp-gki ]]; then branch_file=$dir/gki_extras.fragment; else branch_file=$dir/oneplus_extras.fragment; fi
+[[ -r $branch_file ]] || die "missing fragment: $branch_file"
+declare -A cfg frag
+# Use direct associative assignment without eval for generated config and fragments.
+assignment_re='^CONFIG_[A-Za-z0-9_]+=(y|m|n|".*")$'
+unset_re='^# (CONFIG_[A-Za-z0-9_]+) is not set$'
+parse_file(){ local file=$1 kind=$2 line sym val; while IFS= read -r line || [[ -n $line ]]; do
+  [[ -z $line ]] && continue
+  if [[ $line =~ $assignment_re ]]; then sym=${line%%=*}; val=${line#*=};
+  elif [[ $line =~ $unset_re ]]; then sym=${BASH_REMATCH[1]}; val=n; else continue; fi
+  if [[ $kind == frag ]]; then [[ -v "frag[$sym]" ]] && die "duplicate fragment assignment: $sym"; frag[$sym]=$val; else [[ -v "cfg[$sym]" ]] && die "duplicate generated assignment: $sym"; cfg[$sym]=$val; fi
+done < "$file"; }
+parse_file "$shared" frag; parse_file "$branch_file" frag; parse_file "$config" cfg
+required=(CONFIG_KSU=y CONFIG_KSU_SUSFS=y CONFIG_KSU_SUSFS_SUS_PATH=y CONFIG_KSU_SUSFS_SUS_MOUNT=y CONFIG_KSU_SUSFS_SUS_KSTAT=y CONFIG_KSU_SUSFS_SPOOF_UNAME=y CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y CONFIG_KSU_SUSFS_OPEN_REDIRECT=y CONFIG_KSU_SUSFS_SUS_MAP=y CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y CONFIG_NOMOUNT=y CONFIG_TMPFS_XATTR=y CONFIG_SECURITY_DMESG_RESTRICT=y 'CONFIG_LOCALVERSION=""' CONFIG_LTO_CLANG_THIN=y CONFIG_TCP_CONG_BBR=y CONFIG_DEFAULT_BBR=y CONFIG_NET_SCH_FQ_CODEL=y CONFIG_NET_SCH_CAKE=y CONFIG_NET_SCH_PIE=y CONFIG_IP_SET=y CONFIG_IP_NF_TARGET_TTL=y CONFIG_IP6_NF_NAT=y)
+[[ $branch == aosp-gki ]] && required+=(CONFIG_HZ_250=y)
+for e in "${required[@]}"; do s=${e%%=*}; v=${e#*=}; [[ ${cfg[$s]+x} ]] || die "missing $e"; [[ ${cfg[$s]} == "$v" ]] || die "wrong $s=${cfg[$s]}, expected $v"; [[ ${frag[$s]+x} ]] || die "required symbol not declared by fragment: $s"; done
+for s in CONFIG_KSU_DEBUG CONFIG_KSU_SUSFS_ENABLE_LOG CONFIG_NOMOUNT_DEBUG CONFIG_LOCALVERSION_AUTO CONFIG_KPROBES_SANITY_TEST; do [[ ${cfg[$s]:-n} == n ]] || die "forbidden flag enabled: $s=${cfg[$s]}"; done
+for s in CONFIG_DEBUG_FS CONFIG_KPROBES CONFIG_FTRACE CONFIG_AUDIT CONFIG_PRINTK; do [[ ${cfg[$s]:-} == y ]] || die "protected flag disabled/missing: $s"; done
+printf 'kconfig verification: PASS (%s)\n' "$branch"

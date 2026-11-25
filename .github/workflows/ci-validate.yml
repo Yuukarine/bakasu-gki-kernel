@@ -1,28 +1,39 @@
 name: ci-validate
 on:
   pull_request:
-  push:
-    branches: [master]
-permissions:
-  contents: read
+  push: {branches: [master]}
+permissions: {contents: read}
 jobs:
   validate:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Shell and YAML syntax
+      - name: Shell syntax and lint
         run: |
           set -euo pipefail
-          bash -n scripts/verify_abi_crc.sh scripts/resolve_stock_symvers.sh
-          if command -v ruby >/dev/null 2>&1; then ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "YAML OK: #{f}" }' .github/workflows/*.yml; else python3 - <<'PY'
+          find scripts -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          find anykernel -name '*.sh' -print0 | xargs -0 -n1 sh -n
+          if command -v shellcheck >/dev/null 2>&1; then
+            find scripts -name '*.sh' -print0 | xargs -0 shellcheck -s bash
+            find anykernel -name '*.sh' -print0 | xargs -0 shellcheck -s sh
+          fi
+      - name: YAML syntax
+        run: |
+          set -euo pipefail
+          if command -v actionlint >/dev/null 2>&1; then actionlint .github/workflows/*.yml; fi
+          python3 - <<'PY'
           import pathlib
           try:
               import yaml
           except ImportError:
-              print('PyYAML unavailable; workflow files are checked by GitHub Actions parser')
+              print('PyYAML unavailable; GitHub parser remains authoritative')
           else:
-              for p in pathlib.Path('.github/workflows').glob('*.yml'): yaml.safe_load(p.read_text()); print(f'YAML OK: {p}')
+              for p in pathlib.Path('.github/workflows').glob('*.yml'):
+                  yaml.safe_load(p.read_text()); print(f'YAML OK: {p}')
           PY
-          fi
-      - name: CRC and resolver fixtures
-        run: tests/test_abi_crc.sh
+      - name: Fixture gates
+        run: |
+          set -euo pipefail
+          tests/test_kconfig.sh
+          tests/test_abi_crc.sh
+          tests/test_anykernel.sh

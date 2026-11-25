@@ -1,0 +1,2 @@
+# Merge only after applying the BORE patch and before build.
+CONFIG_SCHED_BORE=y

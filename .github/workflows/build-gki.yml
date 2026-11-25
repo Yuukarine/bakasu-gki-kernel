@@ -1,76 +1,107 @@
 name: build-gki
 on:
   workflow_dispatch:
+    inputs:
+      source_repo: {description: GKI source URL, required: false, default: https://github.com/WildKernels/GKI_KernelSU_SUSFS, type: string}
+      source_ref: {description: Source branch or SHA, required: false, default: main, type: string}
+      stock_symvers_path: {description: Optional stock Module.symvers path, required: false, type: string}
+      stock_symvers_url: {description: Optional stock Module.symvers URL, required: false, type: string}
+      gki_prebuilt_symvers: {description: Optional GKI prebuilt Module.symvers path, required: false, type: string}
+      stock_uname: {description: Optional stock uname banner for cache validation, required: false, type: string}
+      toolchain: {description: Toolchain identity for cache validation, required: false, default: clang-r547379, type: string}
+      bootstrap_stock_symvers: {description: Build unpatched baseline only after cache/prebuilt miss, required: false, default: false, type: boolean}
   push:
     paths: ['configs/**', 'patches/**', 'scripts/**', '.github/workflows/build-gki.yml']
-permissions:
-  contents: read
+permissions: {contents: read}
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - family: android13
-            kmi: android13-5.15
-            page_size: 4096
-            bbg: true
-            droidspaces: true
-            ntsync: true
-          - family: android14
-            kmi: android14-6.1
-            page_size: 4096
-            bbg: true
-            droidspaces: true
-            ntsync: true
-          - family: android15
-            kmi: android15-6.6
-            page_size: 4096
-            bbg: true
-            droidspaces: true
-            ntsync: true
-          - family: android16
-            kmi: android16-6.12
-            page_size: 4096
-            bbg: false
-            droidspaces: false
-            ntsync: false
+          - {family: android13, kmi: android13-5.15, stock_uname: android13-5.15-stock, page_size: 4096, bbg: true, droidspaces: true, ntsync: true, ptrace: true}
+          - {family: android14, kmi: android14-6.1, stock_uname: android14-6.1-stock, page_size: 4096, bbg: true, droidspaces: true, ntsync: true, ptrace: false}
+          - {family: android15, kmi: android15-6.6, stock_uname: android15-6.6-stock-4k, page_size: 4096, bbg: true, droidspaces: true, ntsync: true, ptrace: false}
+          - {family: android16, kmi: android16-6.12, stock_uname: android16-6.12-stock-4k, page_size: 4096, bbg: false, droidspaces: false, ntsync: false, ptrace: false}
     runs-on: ubuntu-24.04
     env:
       KMI: ${{ matrix.kmi }}
       PAGE_SIZE: ${{ matrix.page_size }}
+      STOCK_UNAME: ${{ inputs.stock_uname || matrix.stock_uname }}
+      TOOLCHAIN_ID: ${{ inputs.toolchain || 'clang-r547379' }}
+      SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/WildKernels/GKI_KernelSU_SUSFS' }}
+      SOURCE_REF: ${{ inputs.source_ref || 'main' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Restore stock Module.symvers cache
+      - name: Checkout GKI source
+        run: git clone --depth 1 --branch "$SOURCE_REF" "$SOURCE_REPO" .tmp/kernel_src
+      - name: Resolve declared patch sources
+        env:
+          PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,amneziawg
+        run: |
+          set -euo pipefail
+          if [[ "$KMI" == android13-* ]]; then PATCH_FEATURES="$PATCH_FEATURES,ptrace-leak-fix"; fi
+          PATCH_FEATURES="$PATCH_FEATURES" scripts/apply_patch_sources.sh
+          echo "SOURCE_SHA=$(git -C .tmp/kernel_src rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Restore stock Module.symvers cache first
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
-          key: stock-module-symvers-${{ matrix.kmi }}
+          key: stock-module-symvers-gki-${{ matrix.kmi }}-${{ matrix.page_size }}-${{ inputs.stock_uname || matrix.stock_uname }}-${{ github.sha }}
       - name: Resolve stock Module.symvers
+        id: symvers
+        env:
+          STOCK_PATH: ${{ inputs.stock_symvers_path }}
+          STOCK_URL: ${{ inputs.stock_symvers_url }}
+          PREBUILT: ${{ inputs.gki_prebuilt_symvers }}
         run: |
           set -euo pipefail
-          args=(--output "$RUNNER_TEMP/stock-Module.symvers" --cache "$RUNNER_TEMP/cache-Module.symvers" --prebuilt "${GKI_PREBUILT_MODULE_SYMVERS:-}")
-          [[ -n "${BOOTSTRAP_STOCK_SYMVERS:-}" ]] && args+=(--bootstrap "$BOOTSTRAP_STOCK_SYMVERS")
+          cache_key="stock-module-symvers-gki-${KMI}-${PAGE_SIZE}-${STOCK_UNAME}-${GITHUB_SHA}"
+          args=(--output "$RUNNER_TEMP/stock-Module.symvers" --cache "$RUNNER_TEMP/cache-Module.symvers" --cache-meta "$RUNNER_TEMP/cache-Module.symvers/metadata" --prebuilt "${PREBUILT:-}" --expected-cache-key "$cache_key" --kmi "$KMI" --page-size "$PAGE_SIZE" --stock-uname "$STOCK_UNAME" --source-sha "$SOURCE_SHA" --toolchain "$TOOLCHAIN_ID")
+          [[ -n "${STOCK_PATH:-}" ]] && args+=(--input "$STOCK_PATH")
+          [[ -n "${STOCK_URL:-}" ]] && args+=(--url "$STOCK_URL")
+          if [[ "${{ inputs.bootstrap_stock_symvers || false }}" == true ]]; then args+=(--bootstrap 'KERNEL_SOURCE_DIR=.tmp/kernel_src STOCK_KERNEL_OUT=.tmp/stock-out scripts/bootstrap_stock_symvers.sh'); fi
           scripts/resolve_stock_symvers.sh "${args[@]}" | tee "$RUNNER_TEMP/symvers.env"
+          cat "$RUNNER_TEMP/symvers.env" >> "$GITHUB_OUTPUT"
+          if grep -q '^resolver_source=bootstrap$' "$RUNNER_TEMP/symvers.env"; then
+            mkdir -p "$RUNNER_TEMP/cache-Module.symvers"
+            cp "$RUNNER_TEMP/stock-Module.symvers" "$RUNNER_TEMP/cache-Module.symvers/Module.symvers"
+            sha=$(sha256sum "$RUNNER_TEMP/cache-Module.symvers/Module.symvers" | awk '{print $1}')
+            printf 'cache_key=%s\nkmi=%s\npage_size=%s\nstock_uname=%s\nsource_sha=%s\ntoolchain=%s\nsha256=%s\n' "$cache_key" "$KMI" "$PAGE_SIZE" "$STOCK_UNAME" "$SOURCE_SHA" "$TOOLCHAIN_ID" "$sha" > "$RUNNER_TEMP/cache-Module.symvers/metadata"
+          fi
+      - name: Save bootstrapped stock Module.symvers cache
+        if: ${{ steps.symvers.outputs.resolver_source == 'bootstrap' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/cache-Module.symvers
+          key: stock-module-symvers-gki-${{ matrix.kmi }}-${{ matrix.page_size }}-${{ inputs.stock_uname || matrix.stock_uname }}-${{ github.sha }}
+      - name: Prepare baseline Kconfig
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          make -C .tmp/kernel_src O="$PWD/out" defconfig
+      - name: Merge matrix features and olddefconfig
+        env:
+          BBG: '${{ matrix.bbg }}'
+          DROIDSPACES: '${{ matrix.droidspaces }}'
+          NTSYNC: '${{ matrix.ntsync }}'
+          PTRACE: '${{ matrix.ptrace }}'
+        run: |
+          set -euo pipefail
+          if [[ -x .tmp/kernel_src/scripts/kconfig/merge_config.sh ]]; then .tmp/kernel_src/scripts/kconfig/merge_config.sh -m -O out out/.config configs/bakasu_stealth.fragment configs/gki_extras.fragment; fi
+          make -C .tmp/kernel_src O="$PWD/out" olddefconfig
+          scripts/verify_kconfig.sh --config out/.config --branch aosp-gki
       - name: Build shared GKI
         env:
-          BBG: ${{ matrix.bbg }}
-          DROIDSPACES: ${{ matrix.droidspaces }}
-          NTSYNC: ${{ matrix.ntsync }}
-        run: |
-          set -euo pipefail
-          echo "building $KMI page_size=$PAGE_SIZE BBG=$BBG Droidspaces=$DROIDSPACES NTSync=$NTSYNC"
-          if [[ -x scripts/build_gki.sh ]]; then scripts/build_gki.sh; else echo 'build hook not present; workflow contract validated'; fi
-      - name: ABI CRC gate (zero drift required)
-        run: |
-          set -euo pipefail
-          [[ -f Module.symvers ]] || { echo 'candidate Module.symvers missing' >&2; exit 1; }
-          scripts/verify_abi_crc.sh "$RUNNER_TEMP/stock-Module.symvers" Module.symvers
+          KERNEL_SOURCE_DIR: .tmp/kernel_src
+          KERNEL_OUT: out
+        run: scripts/build_gki.sh
+      - name: ABI CRC hard gate
+        run: scripts/verify_abi_crc.sh "$RUNNER_TEMP/stock-Module.symvers" Module.symvers
+      - name: Package AnyKernel ZIP and checksum
+        run: scripts/package_anykernel.sh --template anykernel/gki --image out/arch/arm64/boot/Image --name "gki-${{ matrix.family }}" --output-dir artifacts
       - name: Record provenance
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          printf 'source_sha=%s\nkmi=%s\npage_size=%s\nresolver=%s\nresolver_sha256=%s\n' \
-            "$(git rev-parse HEAD)" "$KMI" "$PAGE_SIZE" \
-            "$(grep '^source=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" \
-            "$(grep '^sha256=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" > "artifacts/${{ matrix.family }}-provenance.txt"
+          printf 'source_sha=%s\nkmi=%s\npage_size=%s\nresolver_source=%s\nresolver_sha256=%s\n' "$(git -C .tmp/kernel_src rev-parse HEAD)" "$KMI" "$PAGE_SIZE" "$(grep '^resolver_source=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" "$(grep '^sha256=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" > "artifacts/${{ matrix.family }}-provenance.txt"

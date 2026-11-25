@@ -1,0 +1,2 @@
+# OnePlus-only patch/vendor hooks are represented in patches/sources/.
+# Do not invent CONFIG symbols for Faster SDP or vendor HMBIRD hooks.

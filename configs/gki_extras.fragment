@@ -1,0 +1,2 @@
+# AOSP GKI 2.0 shared extras; preserve KMI-safe defaults.
+CONFIG_HZ_250=y

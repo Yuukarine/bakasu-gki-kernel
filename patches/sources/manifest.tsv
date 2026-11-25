@@ -1,0 +1,9 @@
+# feature	source_kind	default_reference	kconfig_fragment
+bakasu	upstream-tree	BakaSU	-
+susfs-v2.4.0	upstream-tree	SUSFS-v2.4.0	-
+nomount	upstream-tree	NoMount	-
+unicode-bypass-fix	patch-c	Unicode-Bypass-Fix	-
+faster-sdp-900ma	patch-c	OnePlus-vendor-hooks	-
+ptrace-leak-fix	patch-c	Ptrace-Leak-Fix	-
+bore	patch-c	BORE	configs/features/oneplus-bore.fragment
+amneziawg	upstream-tree	AmneziaWG	-

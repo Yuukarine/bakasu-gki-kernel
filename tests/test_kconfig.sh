@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
-
-make_config() {
-  local branch=$1 out=$2
-  cat "$ROOT/configs/shared.config" "$ROOT/configs/$branch.config" > "$out"
-  cat >> "$out" <<'CFG'
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+tmp="$root/.tmp/kconfig-fixtures"; mkdir -p "$tmp"; trap 'find "$tmp" -mindepth 1 -maxdepth 1 -exec rm -rf {} +' EXIT
+make_cfg(){ cat "$root/configs/bakasu_stealth.fragment" "$root/configs/gki_extras.fragment" >> "$1"; cat >> "$1" <<'CFG'
 CONFIG_DEBUG_FS=y
 CONFIG_KPROBES=y
 CONFIG_FTRACE=y
@@ -15,15 +10,10 @@ CONFIG_AUDIT=y
 CONFIG_PRINTK=y
 CFG
 }
-
-aosp="$tmp/aosp.config"; oneplus="$tmp/oneplus.config"
-make_config aosp-gki "$aosp"
-make_config oneplus-ogki "$oneplus"
-"$ROOT/scripts/verify_kconfig.sh" --config "$aosp" --branch aosp-gki >/dev/null
-"$ROOT/scripts/verify_kconfig.sh" --config "$oneplus" --branch oneplus-ogki >/dev/null
-sed -i 's/^CONFIG_PRINTK=y$/CONFIG_PRINTK=n/' "$oneplus"
-if "$ROOT/scripts/verify_kconfig.sh" --config "$oneplus" --branch oneplus-ogki >/dev/null 2>&1; then
-  printf 'expected protected-feature failure\n' >&2
-  exit 1
-fi
+good="$tmp/good.config"; make_cfg "$good"
+"$root/scripts/verify_kconfig.sh" --config "$good" --branch aosp-gki >/dev/null
+badlog="$tmp/bad-log.config"; sed 's/^# CONFIG_KSU_SUSFS_ENABLE_LOG is not set$/CONFIG_KSU_SUSFS_ENABLE_LOG=y/' "$good" > "$badlog"
+if "$root/scripts/verify_kconfig.sh" --config "$badlog" --branch aosp-gki >/dev/null 2>&1; then echo 'ENABLE_LOG negative fixture unexpectedly passed' >&2; exit 1; fi
+baddbg="$tmp/bad-debugfs.config"; sed 's/^CONFIG_DEBUG_FS=y$/# CONFIG_DEBUG_FS is not set/' "$good" > "$baddbg"
+if "$root/scripts/verify_kconfig.sh" --config "$baddbg" --branch aosp-gki >/dev/null 2>&1; then echo 'DEBUG_FS negative fixture unexpectedly passed' >&2; exit 1; fi
 printf 'kconfig fixtures: PASS\n'
