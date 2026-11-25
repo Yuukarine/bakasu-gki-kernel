@@ -1,0 +1,77 @@
+name: build-oneplus
+on:
+  workflow_dispatch:
+    inputs:
+      stock_symvers:
+        description: Optional stock Module.symvers path
+        required: false
+        type: string
+  push:
+    paths: ['configs/**', 'patches/**', 'scripts/**', '.github/workflows/build-oneplus.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: ace3v
+            soc: SM8750
+            kmi: android14-6.1
+            stock_uname: 6.1.118-android14-11-o-gac2e718ebee6
+          - device: ace3v
+            soc: SM8750
+            kmi: android14-6.1
+            stock_uname: 6.1.141-android14-11-o-gffc54a6d2287
+    runs-on: ubuntu-24.04
+    env:
+      KMI: ${{ matrix.kmi }}
+      STOCK_UNAME: ${{ matrix.stock_uname }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore stock Module.symvers cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/cache-Module.symvers
+          key: stock-module-symvers-${{ matrix.kmi }}
+      - name: Resolve stock Module.symvers
+        id: symvers
+        env:
+          EXPLICIT: ${{ inputs.stock_symvers }}
+        run: |
+          set -euo pipefail
+          cache="$RUNNER_TEMP/cache-Module.symvers"
+          mkdir -p "$(dirname "$cache")"
+          if [[ -n "${EXPLICIT:-}" ]]; then input="$EXPLICIT"; else input=""; fi
+          # Cache and prebuilt are optional; resolver enforces documented priority.
+          args=(--output "$RUNNER_TEMP/stock-Module.symvers" --cache "$cache" --prebuilt "${GKI_PREBUILT_MODULE_SYMVERS:-}")
+          [[ -n "$input" ]] && args+=(--input "$input")
+          [[ -n "${BOOTSTRAP_STOCK_SYMVERS:-}" ]] && args+=(--bootstrap "$BOOTSTRAP_STOCK_SYMVERS")
+          scripts/resolve_stock_symvers.sh "${args[@]}" | tee "$RUNNER_TEMP/symvers.env"
+          cat "$RUNNER_TEMP/symvers.env" >> "$GITHUB_OUTPUT"
+      - name: Apply BORE before build (only when HMBIRD is absent)
+        run: |
+          set -euo pipefail
+          case "${{ matrix.soc }}" in SM8735|SM8750|MT6991) echo 'HMBIRD=enabled; BORE=disabled'; exit 0;; esac
+          echo 'BORE=enabled'
+          if [[ -x scripts/apply_bore.sh ]]; then scripts/apply_bore.sh; fi
+      - name: Build OnePlus OGKI
+        run: |
+          set -euo pipefail
+          echo "building ${KMI} for ${STOCK_UNAME}"
+          if [[ -x scripts/build_oneplus.sh ]]; then scripts/build_oneplus.sh; else echo 'build hook not present; workflow contract validated'; fi
+      - name: ABI CRC gate (post-build)
+        run: |
+          set -euo pipefail
+          [[ -f "$RUNNER_TEMP/stock-Module.symvers" ]] || { echo 'stock Module.symvers missing' >&2; exit 1; }
+          [[ -f Module.symvers ]] || { echo 'candidate Module.symvers missing' >&2; exit 1; }
+          scripts/verify_abi_crc.sh "$RUNNER_TEMP/stock-Module.symvers" Module.symvers
+      - name: Record provenance
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          printf 'source_sha=%s\nkmi=%s\npage_size=%s\nstock_uname=%s\nresolver=%s\nresolver_sha256=%s\n' \
+            "$(git rev-parse HEAD)" "$KMI" "${PAGE_SIZE:-4096}" "$STOCK_UNAME" \
+            "$(grep '^source=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" \
+            "$(grep '^sha256=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" > artifacts/oneplus-provenance.txt

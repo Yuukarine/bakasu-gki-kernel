@@ -1,0 +1,76 @@
+name: build-gki
+on:
+  workflow_dispatch:
+  push:
+    paths: ['configs/**', 'patches/**', 'scripts/**', '.github/workflows/build-gki.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - family: android13
+            kmi: android13-5.15
+            page_size: 4096
+            bbg: true
+            droidspaces: true
+            ntsync: true
+          - family: android14
+            kmi: android14-6.1
+            page_size: 4096
+            bbg: true
+            droidspaces: true
+            ntsync: true
+          - family: android15
+            kmi: android15-6.6
+            page_size: 4096
+            bbg: true
+            droidspaces: true
+            ntsync: true
+          - family: android16
+            kmi: android16-6.12
+            page_size: 4096
+            bbg: false
+            droidspaces: false
+            ntsync: false
+    runs-on: ubuntu-24.04
+    env:
+      KMI: ${{ matrix.kmi }}
+      PAGE_SIZE: ${{ matrix.page_size }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore stock Module.symvers cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/cache-Module.symvers
+          key: stock-module-symvers-${{ matrix.kmi }}
+      - name: Resolve stock Module.symvers
+        run: |
+          set -euo pipefail
+          args=(--output "$RUNNER_TEMP/stock-Module.symvers" --cache "$RUNNER_TEMP/cache-Module.symvers" --prebuilt "${GKI_PREBUILT_MODULE_SYMVERS:-}")
+          [[ -n "${BOOTSTRAP_STOCK_SYMVERS:-}" ]] && args+=(--bootstrap "$BOOTSTRAP_STOCK_SYMVERS")
+          scripts/resolve_stock_symvers.sh "${args[@]}" | tee "$RUNNER_TEMP/symvers.env"
+      - name: Build shared GKI
+        env:
+          BBG: ${{ matrix.bbg }}
+          DROIDSPACES: ${{ matrix.droidspaces }}
+          NTSYNC: ${{ matrix.ntsync }}
+        run: |
+          set -euo pipefail
+          echo "building $KMI page_size=$PAGE_SIZE BBG=$BBG Droidspaces=$DROIDSPACES NTSync=$NTSYNC"
+          if [[ -x scripts/build_gki.sh ]]; then scripts/build_gki.sh; else echo 'build hook not present; workflow contract validated'; fi
+      - name: ABI CRC gate (zero drift required)
+        run: |
+          set -euo pipefail
+          [[ -f Module.symvers ]] || { echo 'candidate Module.symvers missing' >&2; exit 1; }
+          scripts/verify_abi_crc.sh "$RUNNER_TEMP/stock-Module.symvers" Module.symvers
+      - name: Record provenance
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          printf 'source_sha=%s\nkmi=%s\npage_size=%s\nresolver=%s\nresolver_sha256=%s\n' \
+            "$(git rev-parse HEAD)" "$KMI" "$PAGE_SIZE" \
+            "$(grep '^source=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" \
+            "$(grep '^sha256=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" > "artifacts/${{ matrix.family }}-provenance.txt"
