@@ -5,6 +5,8 @@ src=${KERNEL_SOURCE_DIR:-.tmp/kernel_src}; out=${STOCK_KERNEL_OUT:-.tmp/stock-ou
 [[ -d $src ]] || { echo "kernel source missing: $src" >&2; exit 1; }
 mkdir -p "$out"
 make -C "$src" O="$PWD/$out" defconfig
+[[ -x "$src/scripts/config" ]] || make -C "$src" O="$PWD/$out" scripts
+"$src/scripts/config" --file "$PWD/$out/.config" --enable MODULES --enable MODVERSIONS
 make -C "$src" O="$PWD/$out" olddefconfig
 make -C "$src" O="$PWD/$out" -j"${JOBS:-$(nproc)}" modules
 [[ -s $out/Module.symvers ]] || { echo 'stock baseline Module.symvers missing' >&2; exit 1; }
