@@ -8,3 +8,16 @@ Image*
 
 artifacts/
 PROGRESS.md
+
+# Local AI agent & logs (không đẩy lên GitHub)
+artifacts/
+PROGRESS.md
+.agents/
+.claude/
+.codex/
+.claudeignore
+.codexignore
+AGENTS.md
+skills-lock.json
+scripts/ask_user_popup.sh
+scripts/verify_skill.sh
