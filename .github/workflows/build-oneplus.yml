@@ -74,8 +74,7 @@ jobs:
             printf 'cache_key=%s\nkmi=%s\npage_size=%s\nstock_uname=%s\nsource_sha=%s\ntoolchain=%s\nsha256=%s\n' "$cache_key" "$KMI" "$PAGE_SIZE" "$STOCK_UNAME" "$SOURCE_SHA" "$TOOLCHAIN_ID" "$sha" > "$RUNNER_TEMP/cache-Module.symvers/metadata"
           fi
       - name: Save bootstrapped stock Module.symvers cache
-        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
-        if: ${{ steps.symvers.outputs.resolver_source == 'bootstrap' }}
+        if: ${{ (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) && steps.symvers.outputs.resolver_source == 'bootstrap' }}
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
