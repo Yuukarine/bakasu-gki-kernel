@@ -5,9 +5,9 @@ tmp="$root/.tmp/anykernel-fixtures"; mkdir -p "$tmp/bin" "$tmp/partitions" "$tmp
 : > "$tmp/empty-cmdline"
 export AK3_PROC_CMDLINE="$tmp/empty-cmdline" AK3_CMDLINE_FILE="$tmp/empty-cmdline"
 run(){
-  AK3_LIB_ONLY=0 AK3_DRY_RUN=1 AK3_SLOT_SUFFIX="${AK3_SLOT_SUFFIX:-}" AK3_PAGE_SIZE="${AK3_PAGE_SIZE:-}" AK3_MARKER_ROOT="${AK3_MARKER_ROOT:-}" AK3_PARTITION_ROOT="$tmp/partitions" AK3_BOOTDEVICE_ROOT="$tmp/bootdevice" AK3_BOOT_IMAGE="${AK3_BOOT_IMAGE-$tmp/boot.img}" \
+  AK3_LIB_ONLY=0 AK3_DRY_RUN="${AK3_DRY_RUN:-1}" AK3_SLOT_SUFFIX="${AK3_SLOT_SUFFIX:-}" AK3_PAGE_SIZE="${AK3_PAGE_SIZE:-}" AK3_MARKER_ROOT="${AK3_MARKER_ROOT:-}" AK3_PARTITION_ROOT="$tmp/partitions" AK3_BOOTDEVICE_ROOT="$tmp/bootdevice" AK3_BOOT_IMAGE="${AK3_BOOT_IMAGE-$tmp/boot.img}" \
   AK3_UNAME_R="${AK3_UNAME_R:-6.1.118-android14-11-o-gac2e718ebee}" AK3_EXPECTED_UNAME_R="${AK3_EXPECTED_UNAME_R:-6.1.118-android14-11-o-gac2e718ebee}" \
-  AK3_EXPECTED_KMI="${AK3_EXPECTED_KMI:-android14-6.1}" "$root/anykernel/gki/anykernel.sh"
+  AK3_EXPECTED_KMI="${AK3_EXPECTED_KMI:-android14-6.1}" "$root/anykernel/${AK3_TEST_TEMPLATE:-gki}/anykernel.sh"
 }
 touch "$tmp/boot.img" "$tmp/partitions/boot_a"
 AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run | grep -F 'resolver_source=dry-run'
@@ -27,14 +27,53 @@ rm -f "$tmp/partitions/init_boot"
 touch "$tmp/partitions/init_boot_b"
 if AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run >/dev/null 2>&1; then echo 'opposite init_boot unexpectedly passed' >&2; exit 1; fi
 rm "$tmp/partitions/init_boot_b"; rm "$tmp/partitions/boot_b"
-# Exact six marker paths reject; similar names and nested paths do not.
+# All six shared marker paths now warn, without aborting boot processing.
 touch "$tmp/partitions/init_boot_a"
-for marker in kernelsu.ko ksuinit magiskinit .backup .magisk .backup/.magisk; do
-  rm -rf "$tmp/marker"; mkdir -p "$tmp/marker/$(dirname "$marker")"; touch "$tmp/marker/$marker"
-  if AK3_MARKER_ROOT="$tmp/marker" AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run >/dev/null 2>&1; then echo "marker unexpectedly passed: $marker" >&2; exit 1; fi
+for template in oneplus gki; do
+  for marker in kernelsu.ko ksuinit magiskinit .backup .magisk .backup/.magisk; do
+    rm -rf "$tmp/marker"; mkdir -p "$tmp/marker/$(dirname "$marker")"; touch "$tmp/marker/$marker"
+    AK3_TEST_TEMPLATE="$template" AK3_MARKER_ROOT="$tmp/marker" AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run > "$tmp/marker.out" 2> "$tmp/marker.err"
+    grep -Fq "WARNING: detected init_boot marker: $marker;" "$tmp/marker.err"
+    grep -Fq 'restore stock init_boot.img after stable boot with the Built-in kernel' "$tmp/marker.err"
+    grep -Fq "kernel_fmt=raw boot=$tmp/boot.img init_boot=preserved" "$tmp/marker.out"
+  done
+  rm -rf "$tmp/marker"; mkdir -p "$tmp/marker"
+  AK3_TEST_TEMPLATE="$template" AK3_MARKER_ROOT="$tmp/marker" AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run > "$tmp/clean.out" 2> "$tmp/clean.err"
+  if grep -Fq 'WARNING:' "$tmp/clean.out" "$tmp/clean.err"; then echo 'clean init_boot unexpectedly warned' >&2; exit 1; fi
+  grep -Fq "kernel_fmt=raw boot=$tmp/boot.img init_boot=preserved" "$tmp/clean.out"
+  # Exercise the actual boot-unpack branch with a mock tool, not just dry-run.
+  touch "$tmp/marker/kernelsu.ko"
+  cat > "$tmp/mock-magiskboot" <<'SH'
+#!/bin/sh
+printf '%s %s\n' "$1" "$2" >> "$AK3_TOOL_LOG"
+printf 'KERNEL_FMT=lz4\n'
+SH
+  chmod +x "$tmp/mock-magiskboot"
+  : > "$tmp/tool.log"
+  before=$(sha256sum "$tmp/partitions/init_boot_a" "$tmp/boot.img")
+  AK3_TEST_TEMPLATE="$template" AK3_DRY_RUN=0 AK3_MAGISKBOOT="$tmp/mock-magiskboot" AK3_TOOL_LOG="$tmp/tool.log" AK3_TMPDIR="$tmp/boot-unpack" \
+    AK3_MARKER_ROOT="$tmp/marker" AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run > "$tmp/unpack.out" 2> "$tmp/unpack.err"
+  grep -Fxq "unpack $tmp/boot.img" "$tmp/tool.log"
+  grep -Fq "kernel_fmt=lz4 boot=$tmp/boot.img init_boot=preserved" "$tmp/unpack.out"
+  grep -Fq 'WARNING: detected init_boot marker: kernelsu.ko;' "$tmp/unpack.err"
+  [ "$before" = "$(sha256sum "$tmp/partitions/init_boot_a" "$tmp/boot.img")" ] || { echo 'mock partition changed' >&2; exit 1; }
+  # UI delivery takes priority over stderr and must work with an empty PATH.
+  AK3_LIB_ONLY=1 AK3_MARKER_ROOT="$tmp/marker" sh -c '
+    . "$1"
+    PATH=
+    ui_print() { printf "UI: %s\n" "$*"; }
+    ak3_check_markers
+    printf "marker scan continued\n"
+  ' fixture "$root/anykernel/$template/anykernel.sh" > "$tmp/marker-ui.out" 2> "$tmp/marker-ui.err"
+  grep -Fq 'UI: anykernel: WARNING: detected init_boot marker: kernelsu.ko;' "$tmp/marker-ui.out"
+  grep -Fxq 'marker scan continued' "$tmp/marker-ui.out"
+  test ! -s "$tmp/marker-ui.err"
+  printf 'init_boot warning fixtures: PASS (%s)\n' "$template"
 done
+# Similar names and nested look-alikes remain silent (no wildcard matches).
 rm -rf "$tmp/marker"; mkdir -p "$tmp/marker" "$tmp/marker/foo"; touch "$tmp/marker/.backup.something" "$tmp/marker/.magisk_backup" "$tmp/marker/foo/.backup" "$tmp/marker/foo/.magisk"
-AK3_MARKER_ROOT="$tmp/marker" AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run >/dev/null
+AK3_MARKER_ROOT="$tmp/marker" AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run > "$tmp/near-marker.out" 2> "$tmp/near-marker.err"
+if grep -Fq 'WARNING:' "$tmp/near-marker.out" "$tmp/near-marker.err"; then echo 'near-marker unexpectedly warned' >&2; exit 1; fi
 
 # Package fixtures exercise the offline osm0sis/AnyKernel3 framework path and
 # the post-package root-entry gate without network access.

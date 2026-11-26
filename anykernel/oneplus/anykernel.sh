@@ -11,6 +11,13 @@ ak3_die() {
   printf '%s\n' "anykernel: $*" >&2
   exit 1
 }
+ak3_warn() {
+  if command -v ui_print >/dev/null 2>&1; then
+    ui_print "anykernel: WARNING: $*" || printf '%s\n' "anykernel: WARNING: $*" >&2
+  else
+    printf '%s\n' "anykernel: WARNING: $*" >&2
+  fi
+}
 ak3_truthy() { case "${1:-}" in 1|y|Y|yes|true|TRUE) return 0;; esac; return 1; }
 ak3_exists() { [ -e "$1" ] || [ -b "$1" ]; }
 ak3_norm_slot() {
@@ -172,8 +179,11 @@ ak3_check_markers() {
   root=${AK3_MARKER_ROOT:-${AK3_FIXTURE_ROOT:-}}
   [ -n "$root" ] || return 0
   for marker in kernelsu.ko ksuinit magiskinit .backup .magisk .backup/.magisk; do
-    [ -e "$root/$marker" ] && ak3_die "refusing init_boot marker: $marker"
+    if [ -e "$root/$marker" ]; then
+      ak3_warn "detected init_boot marker: $marker; restore stock init_boot.img after stable boot with the Built-in kernel. Continuing boot processing; init_boot is left unchanged."
+    fi
   done
+  return 0
 }
 ak3_inspect_init_boot() {
   image=$1
@@ -206,7 +216,7 @@ ak3_main() {
   init_state=absent; init=
   if [ -n "${AK3_INIT_BOOT_IMAGE:-}" ]; then init=$AK3_INIT_BOOT_IMAGE; elif [ "$AK3_AB" = 1 ]; then init=$(ak3_part_path "init_boot$AK3_SLOT_SUFFIX" 2>/dev/null || :); else init=$(ak3_part_path init_boot 2>/dev/null || :); fi
   if [ -n "$init" ] && ak3_exists "$init"; then
-    init_state='stock-preserved'
+    init_state='preserved'
     ak3_inspect_init_boot "$init"
   else
     case "$AK3_AB" in
