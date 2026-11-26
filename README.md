@@ -25,7 +25,9 @@ Both workflows expose `custom_driver_name`. Leave it empty to retain the BakaSU 
 ## Flash rules
 
 - **OnePlus:** use the matching exact `uname -r`/KMI banner; do not flash across sublevels. Test with `fastboot boot` first where supported.
-- **RedMagic/Xiaomi:** keep stock `init_boot`; use the GKI AnyKernel template's `magiskboot unpack`/`KERNEL_FMT` handling and matching `4k`/`16k` page size. A/B slot resolution is explicit; missing `init_boot` on a valid A/B device is skipped only when both slot partitions are absent.
+- **RedMagic/Xiaomi:** choose the matching KMI/sublevel and `4k`/`16k` page-size image; keep stock `init_boot`.
+
+Both templates use the pinned osm0sis/AnyKernel3 `split_boot` → `flash_boot` flow. The upstream core resolves the boot partition/slot, unpacks/repackages the image and preserves its ramdisk; it also handles ramdisk-less GKI boot images. The templates do not inspect or write `init_boot` and no longer implement custom runtime KMI/page-size gates: select the correct ZIP before flashing. Core configuration uses uppercase names (`BLOCK`, `IS_SLOT_DEVICE`, `RAMDISK_COMPRESSION`, `PATCH_VBMETA_FLAG`, `NO_BLOCK_DISPLAY`), matching the pinned revision.
 
 ## Runtime roles
 
