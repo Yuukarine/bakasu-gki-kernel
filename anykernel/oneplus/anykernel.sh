@@ -2,7 +2,15 @@
 # POSIX AnyKernel3 safety/metadata gate for BakaSU OGKI and GKI.
 set -u
 
-ak3_die() { printf '%s\n' "anykernel: $*" >&2; exit 1; }
+# Android utilities may be missing from a manager/flasher's inherited PATH.
+PATH=${PATH:-}:/system/bin:/vendor/bin
+export PATH
+
+ak3_die() {
+  if command -v ui_print >/dev/null 2>&1; then ui_print "anykernel: $*"; fi
+  printf '%s\n' "anykernel: $*" >&2
+  exit 1
+}
 ak3_truthy() { case "${1:-}" in 1|y|Y|yes|true|TRUE) return 0;; esac; return 1; }
 ak3_exists() { [ -e "$1" ] || [ -b "$1" ]; }
 ak3_norm_slot() {
@@ -34,6 +42,26 @@ EOF_ROOTS
   return 1
 }
 
+# Parse whole cmdline tokens using shell builtins (no grep/tr dependency).
+ak3_cmdline_slot() (
+  set -f
+  for key in androidboot.slot_suffix androidboot.slot; do
+    while IFS= read -r line || [ -n "$line" ]; do
+      # Intentional whitespace splitting; pathname expansion is disabled above.
+      # shellcheck disable=SC2086
+      for token in $line; do
+        case "$token" in
+          "$key"=*)
+            value=${token#*=}
+            case "$value" in a|-a|_a|b|-b|_b) printf '%s\n' "$value"; return 0;; esac
+            ;;
+        esac
+      done
+    done < "$1"
+  done
+  return 1
+)
+
 ak3_resolve_slot() {
   requested_slot=${AK3_SLOT_SUFFIX:-}
   AK3_RESOLVER_SOURCE=none
@@ -45,12 +73,27 @@ ak3_resolve_slot() {
   if [ -n "${AK3_CORE_SLOT_SUFFIX:-}" ]; then
     ak3_norm_slot "$AK3_CORE_SLOT_SUFFIX"; AK3_RESOLVER_SOURCE=ak3-core; AK3_AB=1; return 0
   fi
+  case "${slot:-}" in
+    a|-a|_a|b|-b|_b)
+      ak3_norm_slot "$slot"; AK3_RESOLVER_SOURCE=ak3-core; AK3_AB=1; return 0;;
+  esac
   if [ -n "${AK3_GETPROP_FILE:-}" ] && [ -r "$AK3_GETPROP_FILE" ]; then
     value=$(sed -n 's/.*ro\.boot\.slot_suffix[=:][[:space:]]*\(_[ab]\).*/\1/p; s/.*ro\.boot\.slot[=:][[:space:]]*\([ab]\).*/_\1/p' "$AK3_GETPROP_FILE" | head -n 1)
     if [ -n "$value" ]; then ak3_norm_slot "$value"; AK3_RESOLVER_SOURCE=getprop; AK3_AB=1; return 0; fi
   fi
-  if [ -n "${AK3_CMDLINE_FILE:-}" ] && [ -r "$AK3_CMDLINE_FILE" ]; then
-    value=$(sed -n 's/.*androidboot\.slot_suffix=\(_[ab]\).*/\1/p' "$AK3_CMDLINE_FILE" | head -n 1)
+  for prop_tool in /system/bin/getprop /vendor/bin/getprop getprop; do
+    command -v "$prop_tool" >/dev/null 2>&1 || continue
+    for property in ro.boot.slot_suffix ro.boot.slot; do
+      value=$("$prop_tool" "$property" 2>/dev/null || :)
+      case "$value" in
+        a|-a|_a|b|-b|_b)
+          ak3_norm_slot "$value"; AK3_RESOLVER_SOURCE=getprop; AK3_AB=1; return 0;;
+      esac
+    done
+  done
+  cmdline=${AK3_PROC_CMDLINE:-${AK3_CMDLINE_FILE:-/proc/cmdline}}
+  if [ -r "$cmdline" ]; then
+    value=$(ak3_cmdline_slot "$cmdline" || :)
     if [ -n "$value" ]; then ak3_norm_slot "$value"; AK3_RESOLVER_SOURCE=cmdline; AK3_AB=1; return 0; fi
   fi
   a=0; b=0
@@ -58,8 +101,7 @@ ak3_resolve_slot() {
   if ak3_part_exists boot_b || ak3_part_exists init_boot_b; then b=1; fi
   if [ "$a" = 1 ] || [ "$b" = 1 ]; then
     AK3_AB=1; AK3_RESOLVER_SOURCE=partition
-    if [ "$a" = 1 ] && [ "$b" != 1 ]; then AK3_SLOT_SUFFIX=_a; fi
-    if [ "$b" = 1 ] && [ "$a" != 1 ]; then AK3_SLOT_SUFFIX=_b; fi
+    # Partition presence proves A/B, not which slot is active. Never guess.
   else
     AK3_SLOT_SUFFIX=; AK3_RESOLVER_SOURCE=none
   fi

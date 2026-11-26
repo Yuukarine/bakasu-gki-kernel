@@ -2,6 +2,8 @@
 set -Eeuo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 tmp="$root/.tmp/anykernel-fixtures"; mkdir -p "$tmp/bin" "$tmp/partitions" "$tmp/bootdevice" "$tmp/marker"; trap 'rm -rf "$tmp"' EXIT
+: > "$tmp/empty-cmdline"
+export AK3_PROC_CMDLINE="$tmp/empty-cmdline" AK3_CMDLINE_FILE="$tmp/empty-cmdline"
 run(){
   AK3_LIB_ONLY=0 AK3_DRY_RUN=1 AK3_SLOT_SUFFIX="${AK3_SLOT_SUFFIX:-}" AK3_PAGE_SIZE="${AK3_PAGE_SIZE:-}" AK3_MARKER_ROOT="${AK3_MARKER_ROOT:-}" AK3_PARTITION_ROOT="$tmp/partitions" AK3_BOOTDEVICE_ROOT="$tmp/bootdevice" AK3_BOOT_IMAGE="${AK3_BOOT_IMAGE-$tmp/boot.img}" \
   AK3_UNAME_R="${AK3_UNAME_R:-6.1.118-android14-11-o-gac2e718ebee}" AK3_EXPECTED_UNAME_R="${AK3_EXPECTED_UNAME_R:-6.1.118-android14-11-o-gac2e718ebee}" \
@@ -83,4 +85,77 @@ rm -f "$tmp/partitions/boot_a" "$tmp/partitions/init_boot_a" "$tmp/marker/.backu
 touch "$tmp/partitions/boot"
 unset AK3_SLOT_SUFFIX AK3_PAGE_SIZE AK3_SMAPS_FILE AK3_MARKER_ROOT
 AK3_DRY_RUN=1 AK3_PAGE_SIZE=4096 AK3_BOOT_IMAGE="$tmp/boot.img" AK3_PARTITION_ROOT="$tmp/partitions" AK3_BOOTDEVICE_ROOT="$tmp/bootdevice" "$root/anykernel/oneplus/anykernel.sh" | grep -F 'init_boot: absent, inspection skipped'
+# Run the active-slot regression suite against BOTH packaged scripts. Only sed
+# is exposed through the minimal PATH; getprop is deliberately absent at first.
+fixture_sh=$(command -v sh)
+mkdir -p "$tmp/min-bin" "$tmp/slot-partitions" "$tmp/no-partitions"
+ln -s "$(command -v sed)" "$tmp/min-bin/sed"
+touch "$tmp/slot-partitions/boot_a" "$tmp/slot-partitions/boot_b"
+slot_run() {
+  PATH="$tmp/min-bin" AK3_LIB_ONLY=0 AK3_DRY_RUN=1 AK3_SLOT_SUFFIX="${AK3_SLOT_SUFFIX:-}" AK3_CORE_SLOT_SUFFIX="${AK3_CORE_SLOT_SUFFIX:-}" \
+  slot="${slot:-}" AK3_GETPROP_FILE="" AK3_CMDLINE_FILE="" AK3_PROC_CMDLINE="${AK3_PROC_CMDLINE:-$tmp/empty-cmdline}" \
+  AK3_PAGE_SIZE=4096 AK3_UNAME_R='6.1.118-android14-11-o-gac2e718ebee' AK3_EXPECTED_UNAME_R='6.1.118-android14-11-o-gac2e718ebee' AK3_EXPECTED_KMI=android14-6.1 \
+  AK3_PARTITION_ROOT="$tmp/slot-partitions" AK3_BOOTDEVICE_ROOT="$tmp/no-partitions" AK3_BOOT_IMAGE="" \
+  "$fixture_sh" "$slot_script"
+}
+for slot_script in "$root/anykernel/oneplus/anykernel.sh" "$root/anykernel/gki/anykernel.sh"; do
+  for slot_input in androidboot.slot_suffix=_b androidboot.slot=a; do
+    printf 'console=tty0 %s quiet\n' "$slot_input" > "$tmp/cmdline"
+    case "$slot_input" in *suffix*) expected=_b;; *) expected=_a;; esac
+    AK3_PROC_CMDLINE="$tmp/cmdline" slot_run > "$tmp/slot.out" 2>&1
+    grep -Fq "resolver_source=cmdline slot_suffix=$expected " "$tmp/slot.out"
+    grep -Fq "boot=$tmp/slot-partitions/boot$expected " "$tmp/slot.out"
+  done
+  # A pre-set ak3-core slot wins over a disagreeing cmdline.
+  printf 'androidboot.slot_suffix=_b androidboot.slot=a\n' > "$tmp/cmdline"
+  AK3_PROC_CMDLINE="$tmp/cmdline" slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=cmdline slot_suffix=_b ' "$tmp/slot.out"
+  slot=-a AK3_PROC_CMDLINE="$tmp/cmdline" slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=ak3-core slot_suffix=_a ' "$tmp/slot.out"
+  AK3_CORE_SLOT_SUFFIX=b slot=_a slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=ak3-core slot_suffix=_b ' "$tmp/slot.out"
+  AK3_SLOT_SUFFIX=_b slot=_a slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=dry-run slot_suffix=_b ' "$tmp/slot.out"
+  cat > "$tmp/min-bin/getprop" <<'SH'
+#!/bin/sh
+case "$1" in
+  ro.boot.slot_suffix) printf '%s' "${FIXTURE_PROP_SUFFIX:-}";;
+  ro.boot.slot) printf '%s' "${FIXTURE_PROP_SLOT:-}";;
+esac
+SH
+  chmod +x "$tmp/min-bin/getprop"
+  for cmdline_path in "$tmp/missing-cmdline" "$tmp/empty-cmdline" "$tmp/cmdline"; do
+    FIXTURE_PROP_SUFFIX=_b AK3_PROC_CMDLINE="$cmdline_path" slot_run > "$tmp/slot.out" 2>&1
+    grep -Fq 'resolver_source=getprop slot_suffix=_b ' "$tmp/slot.out"
+    grep -Fq "boot=$tmp/slot-partitions/boot_b " "$tmp/slot.out"
+  done
+  FIXTURE_PROP_SUFFIX=_b FIXTURE_PROP_SLOT=a slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=getprop slot_suffix=_b ' "$tmp/slot.out"
+  FIXTURE_PROP_SUFFIX='' FIXTURE_PROP_SLOT=b slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=getprop slot_suffix=_b ' "$tmp/slot.out"
+  FIXTURE_PROP_SUFFIX=invalid FIXTURE_PROP_SLOT='' AK3_PROC_CMDLINE="$tmp/cmdline" slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=cmdline slot_suffix=_b ' "$tmp/slot.out"
+  # Pre-set core slot must also win over a conflicting real getprop command.
+  FIXTURE_PROP_SUFFIX=_b slot=a slot_run > "$tmp/slot.out" 2>&1
+  grep -Fq 'resolver_source=ak3-core slot_suffix=_a ' "$tmp/slot.out"
+  rm "$tmp/min-bin/getprop"
+  if slot_run > "$tmp/slot.out" 2>&1; then echo 'A/B without slot unexpectedly passed' >&2; exit 1; fi
+  grep -Fq 'anykernel: A/B device requires active slot suffix' "$tmp/slot.out"
+  # With only one slot visible the partition name is still not active-slot evidence.
+  rm "$tmp/slot-partitions/boot_b"
+  if slot_run > "$tmp/slot.out" 2>&1; then echo 'single visible slot unexpectedly guessed' >&2; exit 1; fi
+  grep -Fq 'anykernel: A/B device requires active slot suffix' "$tmp/slot.out"
+  touch "$tmp/slot-partitions/boot_b"
+  # Flasher UI receives the fatal message when ak3-core provides ui_print.
+  if AK3_LIB_ONLY=1 "$fixture_sh" -c '
+    . "$1"
+    ui_print() { printf "UI: %s\n" "$*"; }
+    ak3_die "A/B device requires active slot suffix"
+  ' fixture "$slot_script" > "$tmp/ui.out" 2> "$tmp/ui.err"; then
+    echo 'UI failure unexpectedly succeeded' >&2; exit 1
+  fi
+  grep -Fxq 'UI: anykernel: A/B device requires active slot suffix' "$tmp/ui.out"
+  grep -Fxq 'anykernel: A/B device requires active slot suffix' "$tmp/ui.err"
+  printf 'active-slot fixtures: PASS (%s)\n' "${slot_script#"$root/"}"
+done
 printf 'AnyKernel fixtures: PASS\n'
