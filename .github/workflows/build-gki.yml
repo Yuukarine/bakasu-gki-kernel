@@ -78,7 +78,7 @@ jobs:
           key: stock-module-symvers-gki-${{ matrix.kmi }}-${{ matrix.page_size }}-${{ inputs.stock_uname || matrix.stock_uname }}-${{ github.sha }}
       - name: Apply declared patch sources after stock baseline resolution
         env:
-          PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,amneziawg
+          PATCH_FEATURES: bakasu,susfs-v2.4.0,unicode-bypass-fix,amneziawg
         run: |
           set -euo pipefail
           if [[ "$KMI" == android13-* ]]; then PATCH_FEATURES="$PATCH_FEATURES,ptrace-leak-fix"; fi

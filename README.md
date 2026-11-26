@@ -29,7 +29,7 @@ Both workflows expose `custom_driver_name`. Leave it empty to retain the BakaSU 
 
 ## Runtime roles
 
-The kernel owns BakaSU + SUSFS v2.4.0 + dormant NoMount + TMPFS XATTR. Choose **one** metamodule, NoMount Suite or Mountify; never configure duplicate `open_redirect` rules. HMA handles app hiding, TrickyStore handles key/TEE state, and ZN-AuditPatch/Zygisk/LSPosed handle userspace policy. Keep BakaSU Manager SELinux-hide and AVC-spoof options disabled (zero-trust).
+The kernel owns BakaSU + SUSFS v2.4.0 + TMPFS XATTR. Use Mountify as the single external metamodule; never configure duplicate `open_redirect` rules. HMA handles app hiding, TrickyStore handles key/TEE state, and ZN-AuditPatch/Zygisk/LSPosed handle userspace policy. Keep BakaSU Manager SELinux-hide and AVC-spoof options disabled (zero-trust).
 
 ## Local gates
 
@@ -42,6 +42,6 @@ bash scripts/verify_abi_crc.sh --help
 Run the fixture suite through `ci-validate.yml`; all temporary fixtures live under `.tmp/` and are removed after the run.
 
 `scripts/apply_patch_sources.sh` keeps patch-only sources (Unicode Bypass, Faster SDP,
-Ptrace Leak, BakaSU/SUSFS/NoMount and AmneziaWG) separate from Kconfig fragments.
+Ptrace Leak, BakaSU/SUSFS and AmneziaWG) separate from Kconfig fragments.
 `scripts/package_anykernel.sh` emits the AnyKernel ZIP and a SHA256 sidecar only after
 the configuration and CRC gates pass.

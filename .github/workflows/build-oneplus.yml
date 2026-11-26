@@ -35,8 +35,6 @@ jobs:
       MODULES_REF: oneplus/sm7675_b_16.0.0_ace_3v
       BAKASU_REPO: https://github.com/Baka-SU/BakaSU.git
       BAKASU_REF: main
-      NOMOUNT_REPO: https://github.com/Bouteillepleine/NoMount-Suite.git
-      NOMOUNT_REF: main
       SUSFS_REPO: https://gitlab.com/simonpunk/susfs4ksu.git
       SUSFS_REF: gki-android14-6.1
       ARCH: arm64
@@ -105,7 +103,7 @@ jobs:
       - name: Apply declared patch sources after stock baseline resolution
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:
-          PATCH_FEATURES: bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,faster-sdp-900ma,amneziawg
+          PATCH_FEATURES: bakasu,susfs-v2.4.0,unicode-bypass-fix,faster-sdp-900ma,amneziawg
         run: |
           set -euo pipefail
           KERNEL_SOURCE_DIR=.tmp/kernel_src/kernel_platform/common bash scripts/apply_patch_sources.sh
@@ -119,15 +117,6 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/.tmp/BakaSU/kernel" "$common/drivers/kernelsu"
           grep -q 'obj-$(CONFIG_KSU) += kernelsu/' "$common/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$common/drivers/Makefile"
           grep -q 'source "drivers/kernelsu/Kconfig"' "$common/drivers/Kconfig" || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' "$common/drivers/Kconfig"
-      - name: Apply NoMount kernel integration
-        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
-        run: |
-          set -euo pipefail
-          git clone --depth 1 --branch "$NOMOUNT_REF" "$NOMOUNT_REPO" .tmp/NoMount-Suite
-          common=.tmp/kernel_src/kernel_platform/common
-          git -C "$common" apply "$GITHUB_WORKSPACE/.tmp/NoMount-Suite/hookless/patches/nomount_kernel_integration.patch"
-          cp .tmp/NoMount-Suite/hookless/src/nomount.c .tmp/NoMount-Suite/hookless/src/nomount.h "$common/fs/"
-
       - name: Apply SUSFS v2.4.0 kernel integration
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |

@@ -15,7 +15,7 @@ All commands and artifacts below are inside this root; Luna worktrees are under
 
 ## Implemented architecture
 
-- [x] Shared BakaSU/SUSFS v2.4.0/NoMount fragment is in `configs/bakasu_stealth.fragment`; protected debug/ABI flags remain enabled and log/debug/localversion leak flags are disabled.
+- [x] Shared BakaSU/SUSFS v2.4.0 fragment is in `configs/bakasu_stealth.fragment`; protected debug/ABI flags remain enabled and log/debug/localversion leak flags are disabled.
 - [x] GKI fragment locks `CONFIG_HZ_250=y`; OnePlus fragment contains no fabricated symbols. Conditional Kconfig is limited to `configs/features/oneplus-bore.fragment`; patch-only features are declared in `patches/sources/manifest.tsv` and applied separately by `scripts/apply_patch_sources.sh`.
 - [x] OnePlus BORE order is enforced: merge `oneplus-bore.fragment` → apply BORE patch → `olddefconfig` → `verify_kconfig` → build → `verify_abi_crc.sh --bore` → package.
 - [x] Workflows include OnePlus Ace 3V Android 16/OOS16/COS16 with KMI `android14-6.1` and both stock banners, plus GKI families `android13-5.15`, `android14-6.1`, `android15-6.6`, and `android16-6.12`; matrix patch selection enables BBG/Droidspaces/NTSync only on the first three families and disables all three on Android 16.
@@ -66,7 +66,7 @@ All commands and artifacts below are inside this root; Luna worktrees are under
 ## Pre-push production audit (2026-11-25)
 
 - [x] Placeholder/stub scan over `.github/`, `patches/`, `configs/`, `scripts/`, and `anykernel/`: no `TODO`, `FIXME`, `placeholder`, `example.com`, `CHANGE_ME`, `0000000`, or mock download/no-op command remained.
-- [x] Remote refs checked with `git ls-remote --exit-code`: BakaSU `main` (`57b2db6076f439cfd489f14576444e8f0f2f0a25`), SUSFS GitLab `master` (`30e66dc3a5c65954de865afd8f44682866887544`), NoMount-Suite `main` (`295035bc03771fddf8eccf8a55f4462e4e706935`), OnePlus-BakaSu_NMS `master` (`3710b8285978986af9fdf7ee43d3fd0853a0fe61`), WildKernels GKI `main` (`54d549fd398a2ccf2146785ab9b3e7b8a6808936`) and `droidspaces-resource-limits` (`fd815b66c5c1ab1b4068ad194601f73302e83652`), firelzrd BORE `main` (`575c13bd2d8a0d96a2d445a87d5a71d20890b631`), and AmneziaWG module `master` (`63ed35de3d3f135b17e8eae0b84949e7700303be`). Dead GitHub SUSFS and dead AmneziaWG kernel URLs were replaced; OnePlus default ref `android14-6.1.118` was replaced by live `master`.
+- [x] Remote refs checked with `git ls-remote --exit-code`: BakaSU `main` (`57b2db6076f439cfd489f14576444e8f0f2f0a25`), SUSFS GitLab `master` (`30e66dc3a5c65954de865afd8f44682866887544`), OnePlus-BakaSu_NMS `master` (`3710b8285978986af9fdf7ee43d3fd0853a0fe61`), WildKernels GKI `main` (`54d549fd398a2ccf2146785ab9b3e7b8a6808936`) and `droidspaces-resource-limits` (`fd815b66c5c1ab1b4068ad194601f73302e83652`), firelzrd BORE `main` (`575c13bd2d8a0d96a2d445a87d5a71d20890b631`), and AmneziaWG module `master` (`63ed35de3d3f135b17e8eae0b84949e7700303be`). Dead GitHub SUSFS and dead AmneziaWG kernel URLs were replaced; OnePlus default ref `android14-6.1.118` was replaced by live `master`.
 - [x] `kernel/Kconfig` fetched from `https://raw.githubusercontent.com/Baka-SU/BakaSU/main/kernel/Kconfig` into `.tmp/audit/`; exact symbols confirmed: `CONFIG_KSU_SUSFS` is “SUSFS Inline Hook”, `CONFIG_KSU_TRACEPOINT_HOOK` and `CONFIG_KSU_MANUAL_HOOK` are the duplicate hook selectors, and `CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT` does not exist. The fragment/validator now remove the nonexistent symbol and reject both duplicate hooks; negative fixture covers tracepoint enablement.
 - [x] `build-oneplus.yml` and `build-gki.yml` now free runner disk space (`/usr/share/dotnet`, `/opt/ghc`, `/usr/local/lib/android`, Docker prune) before clone/build. Stock bootstrap runs before patch-source application, so the optional baseline is genuinely unpatched; cache metadata and resolver source remain recorded.
 - [x] BORE fallback downloads the pinned firelzrd 6.1 patch only when no local patch exists (`curl --retry`), merges `oneplus-bore.fragment`, applies the patch, then olddefconfig/verify/build/`verify_abi_crc.sh --bore`; the raw URL returned HTTP 200 during audit.
@@ -94,3 +94,9 @@ All commands and artifacts below are inside this root; Luna worktrees are under
 - [x] `.tmp/` was emptied after verification; `git worktree list` contains only the project worktree. Artifacts remain ignored and untracked.
 - [x] Transaction roles reopened: `/home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/MODIFIED_FILE`, `DIFF_FILE`, `VERIFICATION.txt`, executable `ROLLBACK.sh`. Baseline SHA `4f081b47bd07cf668d90c71c30ec44915614df7f9fedb21f41d374010a2a212b`, modified SHA `b556af5e6d452ddf8c7f3f462b39d924b8857c4797e2bc8fdc79729f65999cc5`, rollback restored the baseline hash and baseline packaging exited 0.
 - [x] Updated `scripts/apply_patch_sources.sh` to parse and enforce the manifest `commit_sha` column, preventing a stale AnyKernel3 pin from entering CI; syntax and AnyKernel fixtures were rerun after this change.
+
+## Phase 1 — NoMount removal (2026-11-26)
+
+- [x] Removed the NoMount manifest row, patch feature defaults, workflow clone/apply step, Kconfig symbols/validator checks, skill references, and README/runtime references.
+- [x] `grep -rniE 'nomount|CONFIG_NOMOUNT|00_NoMount' patches scripts configs anykernel tests .github README.md` returns no matches.
+- [x] Local gates passed: `bash -n scripts/*.sh tests/*.sh`, `sh -n anykernel/*/*.sh`, PyYAML workflow parse, all `tests/*.sh`, and `git diff --check`.

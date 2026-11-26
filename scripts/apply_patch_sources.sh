@@ -4,7 +4,7 @@ set -Eeuo pipefail
 source_dir=${KERNEL_SOURCE_DIR:-.tmp/kernel_src}
 manifest=${PATCH_MANIFEST:-patches/sources/manifest.tsv}
 log=${PATCH_LOG:-artifacts/patch-sources.log}
-features=${PATCH_FEATURES:-bakasu,susfs-v2.4.0,nomount,unicode-bypass-fix,faster-sdp-900ma,ptrace-leak-fix,amneziawg}
+features=${PATCH_FEATURES:-bakasu,susfs-v2.4.0,unicode-bypass-fix,faster-sdp-900ma,ptrace-leak-fix,amneziawg}
 [[ -d $source_dir ]] || { echo "kernel source missing: $source_dir" >&2; exit 1; }
 [[ -r $manifest ]] || { echo "patch manifest missing: $manifest" >&2; exit 1; }
 mkdir -p "$(dirname -- "$log")"; : > "$log"

@@ -2,7 +2,6 @@
 osm0sis-anykernel3	upstream-tree	https://github.com/osm0sis/AnyKernel3.git	master	-	41f04bdb4ee30a44e429c2c1131d5e8bb32b15f1
 bakasu	upstream-tree	https://github.com/Baka-SU/BakaSU.git	main	-
 susfs-v2.4.0	upstream-tree	https://gitlab.com/simonpunk/susfs4ksu.git	master	-
-nomount	upstream-tree	https://github.com/Bouteillepleine/NoMount-Suite.git	main	-
 unicode-bypass-fix	patch-c	https://github.com/Baka-SU/BakaSU.git	main	-
 faster-sdp-900ma	patch-c	https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS.git	master	-
 ptrace-leak-fix	patch-c	https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS.git	master	-
