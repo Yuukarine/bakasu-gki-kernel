@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 patch_file=${BORE_PATCH_FILE:-patches/sources/bore/bore.patch}
 patch_url=${BORE_PATCH_URL:-}
-source_dir=${KERNEL_SOURCE_DIR:-.tmp/kernel_src}
+source_dir=${KERNEL_SOURCE_DIR:-.tmp/kernel_src/kernel_platform/common}
 fragment=${BORE_FRAGMENT:-configs/features/oneplus-bore.fragment}
 merge=${KCONFIG_MERGE_CONFIG:-$source_dir/scripts/kconfig/merge_config.sh}
 out=${KERNEL_OUT:-out}

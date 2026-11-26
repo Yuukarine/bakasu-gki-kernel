@@ -141,6 +141,7 @@ jobs:
         if: ${{ (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) && inputs.enable_bore == true && matrix.hmbird == false }}
         env:
           BORE_PATCH_URL: https://raw.githubusercontent.com/firelzrd/bore-scheduler/main/patches/legacy/linux-6.1-bore/0001-linux6.1.y-bore5.1.0.patch
+          KERNEL_SOURCE_DIR: .tmp/kernel_src/kernel_platform/common
         run: |
           set -euo pipefail
           BORE_PATCH_URL="$BORE_PATCH_URL" bash scripts/apply_bore.sh
