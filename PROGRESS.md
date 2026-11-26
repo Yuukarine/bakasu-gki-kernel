@@ -171,3 +171,12 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - Root cause: `make kernelrelease` includes the SCM dirty suffix while patch sources are intentionally applied; this is not a VERSION/PATCHLEVEL mismatch.
 - Fix in `scripts/build_oneplus.sh`: compare the authoritative `make kernelversion` result and pass `CONFIG_LOCALVERSION_AUTO=n` to `kernelversion`, `olddefconfig`, and the Image/modules build so the target UTS suffix is supplied only from `STOCK_UNAME`.
 - Local evidence: `bash -n scripts/build_oneplus.sh` exit 0; `git diff --check` exit 0; rollback copy hash equals pristine baseline.
+
+## 2026-11-26 Live OnePlus build verification (fixed UTS gate)
+- Successful run: [build-oneplus #45818209541](https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/45818209541), commit `62ed9c06a15c838a292180a0bcb3b7b208854e91`.
+- Target: OnePlus Ace 3V / `6.1.118-android14-11-o-gac2e718ebee`; `bootstrap_stock_symvers=true`, `enable_bore=false`, empty `custom_driver_name`.
+- Resolver: `resolver_source=cache`, stock baseline SHA256 `842f1ce784f44235427dfe2710a17b452560f102fda6ed988294c3833c872d50`.
+- Gates: `kconfig verification: PASS (oneplus-ogki)`; `CRC CHECK: PASS (15552 symbols, zero CRC drift; added=29 non-reference exports; bore=0)`.
+- Artifact: `oneplus-ace3v-6.1.118-android14-11-o-gac2e718ebee.zip`; embedded checksum `e854e87602a1281ea14972f5eaccc3dc0f581974943184b6bc3fb29679a12330`.
+- ZIP verification: `unzip -tq` PASS; root contains `META-INF/com/google/android/update-binary`, `META-INF/com/google/android/updater-script`, `tools/ak3-core.sh`, `tools/magiskboot`, `anykernel.sh`, `Image`; no parent-directory nesting.
+- Embedded Image: `Linux kernel ARM64 boot executable Image, little-endian, 4K pages`; exact release `Linux version 6.1.118-android14-11-o-gac2e718ebee ...`.
