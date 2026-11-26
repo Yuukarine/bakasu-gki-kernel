@@ -7,6 +7,14 @@ tmp=$(mktemp -d "$root/.tmp/anykernel-fixtures.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 fixture_sh=$(command -v sh)
 mkdir -p "$tmp/min-bin"
+# Resolve the exact manifest pin and inspect the real upstream core, not a mock.
+ak3_url=$(awk -F '\t' '$1 == "osm0sis-anykernel3" {print $3; exit}' "$root/patches/sources/manifest.tsv")
+ak3_sha=$(awk -F '\t' '$1 == "osm0sis-anykernel3" {print $6; exit}' "$root/patches/sources/manifest.tsv")
+ak3_ref="$tmp/upstream-ak3"
+git clone --depth 1 --branch master "$ak3_url" "$ak3_ref" >/dev/null 2>&1
+git -C "$ak3_ref" fetch --depth 1 origin "$ak3_sha" >/dev/null 2>&1
+git -C "$ak3_ref" checkout --detach "$ak3_sha" >/dev/null 2>&1
+"$root/scripts/verify_anykernel_core.sh" --core "$ak3_ref/tools/ak3-core.sh" --template "$root/anykernel/oneplus/anykernel.sh" --template "$root/anykernel/gki/anykernel.sh"
 # update-binary exports the core/tool applets into PATH. Only its property-reader
 # applets are needed by this harness: no getprop, dd or magiskboot is available.
 for applet in grep tail cut; do ln -s "$(command -v "$applet")" "$tmp/min-bin/$applet"; done

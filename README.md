@@ -24,7 +24,7 @@ Both workflows expose `custom_driver_name`. Leave it empty to retain the BakaSU 
 
 ## Flash rules
 
-- **OnePlus:** use the matching exact `uname -r`/KMI banner; do not flash across sublevels. Test with `fastboot boot` first where supported.
+- **OnePlus:** use the matching exact `uname -r`/KMI banner; do not flash across sublevels. CI pins the 6.1.118/6.1.141 source commits per matrix, sets only the release suffix through `LOCALVERSION`, and rejects any `Image` whose ARM64 format or embedded `Linux version` differs byte-for-byte from `STOCK_UNAME`. Test with `fastboot boot` first where supported.
 - **RedMagic/Xiaomi:** choose the matching KMI/sublevel and `4k`/`16k` page-size image; keep stock `init_boot`.
 
 Both templates use the pinned osm0sis/AnyKernel3 `split_boot` → `flash_boot` flow. The upstream core resolves the boot partition/slot, unpacks/repackages the image and preserves its ramdisk; it also handles ramdisk-less GKI boot images. The templates do not inspect or write `init_boot` and no longer implement custom runtime KMI/page-size gates: select the correct ZIP before flashing. Core configuration uses uppercase names (`BLOCK`, `IS_SLOT_DEVICE`, `RAMDISK_COMPRESSION`, `PATCH_VBMETA_FLAG`, `NO_BLOCK_DISPLAY`), matching the pinned revision.
@@ -47,3 +47,5 @@ Run the fixture suite through `ci-validate.yml`; all temporary fixtures live und
 Ptrace Leak, BakaSU/SUSFS and AmneziaWG) separate from Kconfig fragments.
 `scripts/package_anykernel.sh` emits the AnyKernel ZIP and a SHA256 sidecar only after
 the configuration and CRC gates pass.
+
+The image gate is `scripts/verify_image_release.sh`; it rejects `+`, `-dirty`, truncated, or mismatched releases before the ABI and AnyKernel packaging gates.

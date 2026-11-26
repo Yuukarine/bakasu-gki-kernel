@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       source_repo: {description: OnePlusOSS kernel source URL, required: false, default: https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git, type: string}
-      source_ref: {description: Source branch or SHA, required: false, default: oneplus/sm7675_b_16.0.0_ace_3v, type: string}
+      source_ref: {description: Optional source branch or SHA override, required: false, default: "", type: string}
       stock_symvers_path: {description: Optional stock Module.symvers path, required: false, type: string}
       stock_symvers_url: {description: Optional stock Module.symvers URL, required: false, type: string}
       gki_prebuilt_symvers: {description: Optional GKI prebuilt Module.symvers path, required: false, type: string}
@@ -21,8 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.118-android14-11-o-gac2e718ebee, page_size: 4096, hmbird: false}
-          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.141-android14-11-o-gffc54a6d2287, page_size: 4096, hmbird: false}
+          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.118-android14-11-o-gac2e718ebee, source_ref: 2f2512ac1091bb2b28c20306fa86d890e8f3f01f, page_size: 4096, hmbird: false}
+          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.141-android14-11-o-gffc54a6d2287, source_ref: 3bcb2b3b5f0ad367fef9c7463be0cb17e0b7c2a8, page_size: 4096, hmbird: false}
     runs-on: ubuntu-24.04
     env:
       KMI: ${{ matrix.kmi }}
@@ -30,7 +30,7 @@ jobs:
       PAGE_SIZE: ${{ matrix.page_size }}
       TOOLCHAIN_ID: ${{ inputs.toolchain || 'clang-r547379' }}
       SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git' }}
-      SOURCE_REF: ${{ inputs.source_ref || 'oneplus/sm7675_b_16.0.0_ace_3v' }}
+      SOURCE_REF: ${{ inputs.source_ref || matrix.source_ref }}
       MODULES_REPO: https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm7675.git
       MODULES_REF: oneplus/sm7675_b_16.0.0_ace_3v
       BAKASU_REPO: https://github.com/Baka-SU/BakaSU.git
@@ -61,7 +61,9 @@ jobs:
           set -euo pipefail
           git clone --depth 1 --branch "$MODULES_REF" "$MODULES_REPO" .tmp/kernel_src
           mkdir -p .tmp/kernel_src/kernel_platform
-          git clone --depth 1 --branch "$SOURCE_REF" "$SOURCE_REPO" .tmp/kernel_src/kernel_platform/common
+          git clone --depth 1 "$SOURCE_REPO" .tmp/kernel_src/kernel_platform/common
+          git -C .tmp/kernel_src/kernel_platform/common fetch --depth 1 origin "$SOURCE_REF"
+          git -C .tmp/kernel_src/kernel_platform/common checkout --detach FETCH_HEAD
           echo "SOURCE_SHA=$(git -C .tmp/kernel_src/kernel_platform/common rev-parse HEAD)" >> "$GITHUB_ENV"
       - name: Restore stock Module.symvers cache
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
@@ -158,6 +160,9 @@ jobs:
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env: {KERNEL_SOURCE_DIR: .tmp/kernel_src/kernel_platform/common, KERNEL_OUT: out}
         run: scripts/build_oneplus.sh
+      - name: Verify Image UTS release before ABI/package
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
+        run: scripts/verify_image_release.sh --image out/arch/arm64/boot/Image --expected "$STOCK_UNAME"
       - name: ABI CRC gate (BORE hard gate when selected)
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
