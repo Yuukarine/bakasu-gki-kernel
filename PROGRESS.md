@@ -180,3 +180,4 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - Artifact: `oneplus-ace3v-6.1.118-android14-11-o-gac2e718ebee.zip`; embedded checksum `e854e87602a1281ea14972f5eaccc3dc0f581974943184b6bc3fb29679a12330`.
 - ZIP verification: `unzip -tq` PASS; root contains `META-INF/com/google/android/update-binary`, `META-INF/com/google/android/updater-script`, `tools/ak3-core.sh`, `tools/magiskboot`, `anykernel.sh`, `Image`; no parent-directory nesting.
 - Embedded Image: `Linux kernel ARM64 boot executable Image, little-endian, 4K pages`; exact release `Linux version 6.1.118-android14-11-o-gac2e718ebee ...`.
+- Post-fix validation: [ci-validate #45825342271](https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/45825342271) PASS.
