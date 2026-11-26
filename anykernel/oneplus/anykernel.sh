@@ -3,6 +3,8 @@
 # These variables are consumed by tools/ak3-core.sh.
 # shellcheck disable=SC2034
 
+# Parsed as metadata by update-binary, never invoked as a shell function.
+# shellcheck disable=SC2289
 properties() { '
 kernel.string=BakaSU OnePlus OGKI
 do.devicecheck=0
