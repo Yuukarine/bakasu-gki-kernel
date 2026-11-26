@@ -165,3 +165,9 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - [x] Added direct pinned upstream core gate `scripts/verify_anykernel_core.sh`; `tests/test_anykernel.sh` clones manifest SHA `41f04bd...` and checks actual `tools/ak3-core.sh` function names plus both templates. All tests passed locally.
 - [x] Local gates after fix: `shellcheck -s bash scripts/*.sh` (ShellCheck v0.10.0), `bash -n scripts/*.sh tests/*.sh`, `sh -n anykernel/*/*.sh`, PyYAML all workflows, all `tests/*.sh`, and `git diff --check` exit 0. Literal diagnostic log and artifact evidence remain in ignored `.tmp/diag/` until commit cleanup.
 - [ ] Push, pass `ci-validate`, run clean target build with `bootstrap_stock_symvers=false`, `enable_bore=false`, and inspect the new artifact offline.
+
+## 2026-11-26 OnePlus UTS bootstrap rerun audit
+- Live run [45813171456](https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/45813171456) reached the build gate after bootstrap, then failed before compilation with `source kernel base mismatch: expected=6.1.118 actual=6.1.118-g2f2512ac1091-dirty`.
+- Root cause: `make kernelrelease` includes the SCM dirty suffix while patch sources are intentionally applied; this is not a VERSION/PATCHLEVEL mismatch.
+- Fix in `scripts/build_oneplus.sh`: compare the authoritative `make kernelversion` result and pass `CONFIG_LOCALVERSION_AUTO=n` to `kernelversion`, `olddefconfig`, and the Image/modules build so the target UTS suffix is supplied only from `STOCK_UNAME`.
+- Local evidence: `bash -n scripts/build_oneplus.sh` exit 0; `git diff --check` exit 0; rollback copy hash equals pristine baseline.
