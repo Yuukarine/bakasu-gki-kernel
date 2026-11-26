@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-tmp="$root/.tmp/anykernel-fixtures"; mkdir -p "$tmp/bin" "$tmp/partitions" "$tmp/bootdevice" "$tmp/marker"; trap 'find "$tmp" -mindepth 1 -maxdepth 1 -exec rm -rf {} +' EXIT
+tmp="$root/.tmp/anykernel-fixtures"; mkdir -p "$tmp/bin" "$tmp/partitions" "$tmp/bootdevice" "$tmp/marker"; trap 'rm -rf "$tmp"' EXIT
 run(){
   AK3_LIB_ONLY=0 AK3_DRY_RUN=1 AK3_SLOT_SUFFIX="${AK3_SLOT_SUFFIX:-}" AK3_PAGE_SIZE="${AK3_PAGE_SIZE:-}" AK3_MARKER_ROOT="${AK3_MARKER_ROOT:-}" AK3_PARTITION_ROOT="$tmp/partitions" AK3_BOOTDEVICE_ROOT="$tmp/bootdevice" AK3_BOOT_IMAGE="${AK3_BOOT_IMAGE-$tmp/boot.img}" \
   AK3_UNAME_R="${AK3_UNAME_R:-6.1.118-android14-11-o-gac2e718ebee}" AK3_EXPECTED_UNAME_R="${AK3_EXPECTED_UNAME_R:-6.1.118-android14-11-o-gac2e718ebee}" \
@@ -33,6 +33,37 @@ for marker in kernelsu.ko ksuinit magiskinit .backup .magisk .backup/.magisk; do
 done
 rm -rf "$tmp/marker"; mkdir -p "$tmp/marker" "$tmp/marker/foo"; touch "$tmp/marker/.backup.something" "$tmp/marker/.magisk_backup" "$tmp/marker/foo/.backup" "$tmp/marker/foo/.magisk"
 AK3_MARKER_ROOT="$tmp/marker" AK3_SLOT_SUFFIX=_a AK3_PAGE_SIZE=4096 run >/dev/null
+
+# Package fixtures exercise the offline osm0sis/AnyKernel3 framework path and
+# the post-package root-entry gate without network access.
+framework="$tmp/framework"
+mkdir -p "$framework/META-INF/com/google/android" "$framework/tools" "$framework/.git"
+printf '#!/bin/sh\n' > "$framework/META-INF/com/google/android/update-binary"
+printf '# fixture\n' > "$framework/META-INF/com/google/android/updater-script"
+printf '#!/bin/sh\n' > "$framework/tools/ak3-core.sh"
+printf 'upstream\n' > "$framework/README.md"
+printf '#!/bin/sh\n' > "$framework/anykernel.sh"
+printf 'git\n' > "$framework/.git/config"
+chmod +x "$framework/META-INF/com/google/android/update-binary" "$framework/tools/ak3-core.sh"
+printf 'image\n' > "$tmp/Image"
+package_out="$tmp/package-out"
+package_log="$tmp/package.log"
+scripts/package_anykernel.sh --template anykernel/gki --ak3-template-dir "$framework" --image "$tmp/Image" --name fixture-pass --output-dir "$package_out" >"$package_log"
+pass_zip="$package_out/fixture-pass.zip"
+for entry in META-INF/com/google/android/update-binary META-INF/com/google/android/updater-script tools/ak3-core.sh anykernel.sh Image; do
+  unzip -Z1 "$pass_zip" | sed 's#^\./##' | grep -Fxq "$entry" || { echo "missing package entry: $entry" >&2; exit 1; }
+done
+if unzip -Z1 "$pass_zip" | grep -Eq '(^|/)\.git(/|$)|(^|/)fixture-pass/'; then echo 'nested or .git entry in package' >&2; exit 1; fi
+echo "$(sha256sum "$pass_zip")" | cmp -s - "$pass_zip.sha256" || { echo 'package checksum mismatch' >&2; exit 1; }
+
+for missing in update-binary ak3-core.sh; do
+  bad="$tmp/framework-missing-$missing"; cp -a "$framework" "$bad"
+  if [ "$missing" = update-binary ]; then rm -f "$bad/META-INF/com/google/android/update-binary"; else rm -f "$bad/tools/ak3-core.sh"; fi
+  if scripts/package_anykernel.sh --template anykernel/gki --ak3-template-dir "$bad" --image "$tmp/Image" --name "fixture-fail-$missing" --output-dir "$package_out" >"$tmp/fail-$missing.out" 2>"$tmp/fail-$missing.err"; then
+    echo "package unexpectedly passed missing $missing" >&2; exit 1
+  fi
+  grep -Fq "package structure gate failed: missing root entry" "$tmp/fail-$missing.err" || { cat "$tmp/fail-$missing.err" >&2; exit 1; }
+done
 # getconf failure falls back to a consistent base page size and ignores hugepage VMAs.
 rm -f "$tmp/partitions/init_boot_a"
 cat > "$tmp/bin/getconf" <<'SH'

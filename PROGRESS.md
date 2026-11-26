@@ -83,3 +83,14 @@ All commands and artifacts below are inside this root; Luna worktrees are under
 - [x] Resolver evidence: `resolver_source=cache`, SHA256 `bf00d20b3871308202960d25d15a8d5cc09a084f8afea863f107039b3cfbc93c`.
 - [x] Uploaded artifact: `oneplus-ace3v-6.1.118-android14-11-o-gac2e718ebee`; ZIP SHA256 `61326e2f3122443434dd7f37c7780a31f337de426494c81065e8dfcdb1ee1d19`; checksum sidecar included.
 - [x] Artifact contents and checksum were downloaded and verified locally; no build-gki workflow was triggered in this turn.
+
+## AnyKernel3 ZIP framework repair (2026-11-26)
+
+- [x] Added pinned `osm0sis/AnyKernel3` manifest source `master` at commit `41f04bdb4ee30a44e429c2c1131d5e8bb32b15f1`, confirmed with `git ls-remote`.
+- [x] Reworked `scripts/package_anykernel.sh` to support `--ak3-template-dir`/`AK3_TEMPLATE_DIR` offline fixtures or shallow pinned upstream clone, preserve `META-INF/` and `tools/`, replace the device script and `Image`/`dtb`/`dtbo`, create a root-level ZIP and SHA256 sidecar, and hard-fail on missing required entries, `.git/`, or nested package roots.
+- [x] Extended `tests/test_anykernel.sh` with complete PASS and missing-`update-binary`/missing-`ak3-core.sh` FAIL package fixtures. `./tests/test_anykernel.sh` returned `AnyKernel fixtures: PASS` (exit 0); fixture output and ZIP checksum matched.
+- [x] Real upstream smoke package cloned `osm0sis/AnyKernel3` and passed the same root-entry gate; `sha256sum -c` returned `OK` (exit 0).
+- [x] `bash -n scripts/*.sh tests/*.sh`, `sh -n anykernel/*/*.sh`, PyYAML workflow parsing, all four fixture suites, and `git diff --check` passed. `shellcheck`/`actionlint` are unavailable locally and remain conditional in CI.
+- [x] `.tmp/` was emptied after verification; `git worktree list` contains only the project worktree. Artifacts remain ignored and untracked.
+- [x] Transaction roles reopened: `/home/yuukari_ne/My-Project/custom-phone/kernel-build/artifacts/MODIFIED_FILE`, `DIFF_FILE`, `VERIFICATION.txt`, executable `ROLLBACK.sh`. Baseline SHA `4f081b47bd07cf668d90c71c30ec44915614df7f9fedb21f41d374010a2a212b`, modified SHA `b556af5e6d452ddf8c7f3f462b39d924b8857c4797e2bc8fdc79729f65999cc5`, rollback restored the baseline hash and baseline packaging exited 0.
+- [x] Updated `scripts/apply_patch_sources.sh` to parse and enforce the manifest `commit_sha` column, preventing a stale AnyKernel3 pin from entering CI; syntax and AnyKernel fixtures were rerun after this change.
