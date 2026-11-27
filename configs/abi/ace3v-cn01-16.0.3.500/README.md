@@ -24,10 +24,21 @@ unpatched stock CRC gate. Added imports must get actual provider/export evidence
 Update inventory + exports + imports together only after checking the new ELFs.
 
 The build workflow also runs a coverage preflight against known test-01 exports
-before fetching/building. 181 unresolved imports across supplied consumers remain
-blocked. Full missing vendor providers/exports (for example qcom_ipc_logging,
-qmi_helpers, ipam) and initial module-loader errors are still needed to prove a
-Wi-Fi fix. A modules.dep path or another consumer's CRC cannot substitute for them.
+before fetching/building. The new 489-module collection supplies 4,403 exports:
+133 of the prior 181 unresolved imports now have independently observed matching
+providers. **48 imports / 25 distinct symbols remain unresolved**; production is
+still blocked (exit 2), with missing_symbol=0 and changed_crc=0 only among observed
+providers. All 3,081 original consumer/symbol/required-CRC tuples are unchanged.
+
+- `provider-inputs.tsv`: source relative path + SHA256 for each supplied ELF.
+- `resolved-provider-imports.tsv`: 133 independently matched import/export rows.
+- `unverified-imports.tsv`: exact remaining 48 consumer/symbol/CRC requirements.
+
+All 25 unresolved symbols are also absent from the full recovered test-01 Image
+export set. Working lsmod lists qcom_ipc_logging, qcom_aoss, cmd_db and
+oplus_bsp_boot_projectinfo, whose corresponding ELFs/exports are absent from this
+collection. Their original storage location is not established. A modules.dep
+path, consumer CRC or guessed vmlinux assignment is not provider evidence.
 
 Working log loads qca_cld3_qca6750 + icnss2, not kiwi + cnss2. Both kernel configs
 have CFG80211=n and RFKILL=m. No blind Kconfig/UTS change is justified by these data.

@@ -130,3 +130,58 @@ Temporary input ELFs/logs were preserved under ignored local
 `artifacts/test02-diagnostic-inputs/` (INPUTS.sha256), and exact-source experiments
 under `artifacts/test02-source-evidence/`, before emptying `.tmp/`. No .ko/ZIP
 was added to Git; local-builds/test-01 checksum still passes.
+
+## ROM provider collection follow-up (489 modules)
+
+**NO-GO: explicit stop-before-build condition remains active.** Actual ELF exports
+resolved 133/181 rows, not all 181. New preflight (exit 2):
+
+```
+MODULE ABI CHECK: FAIL (imports=3081 modules=16 missing_provider=48 missing_symbol=0 changed_crc=0)
+ktool: ROM module ABI requirements not satisfied
+```
+
+4,403 exports were extracted with host `modprobe --show-exports` from 489 unique
+ELFs; SHA256/path/vermagic are recorded in the ABI profile. No export CRC was
+inferred from an import. No original import requirement was changed. No ambiguous
+provider and no newly resolved CRC mismatch occurred. All 25 remaining symbols
+are absent from both this collection and the full recovered test-01 Image export
+set; this is missing evidence, not a claim that the ROM cannot supply them.
+Working lsmod contains qcom_ipc_logging, qcom_aoss, cmd_db and
+oplus_bsp_boot_projectinfo, not present as providers in this collection. The storage
+location of these missing providers is not yet proven.
+
+| Symbol | Consumer module(s) |
+|---|---|
+| `cmd_db_read_addr` | `cnss2.ko` |
+| `cmd_db_ready` | `cnss2.ko` |
+| `get_Modem_Version` | `cnss2.ko`, `icnss2.ko` |
+| `get_Operator_Version` | `cnss2.ko`, `icnss2.ko` |
+| `get_boot_mode` | `cnss2.ko`, `icnss2.ko` |
+| `get_eng_version` | `qca_cld3_kiwi_v2.ko`, `qca_cld3_peach.ko`, `qca_cld3_qca6750.ko` |
+| `get_project` | `cnss2.ko`, `icnss2.ko` |
+| `ipc_log_context_create` | `cnss2.ko`, `cnss_plat_ipc_qmi_svc.ko`, `icnss2.ko` |
+| `ipc_log_context_destroy` | `cnss2.ko`, `cnss_plat_ipc_qmi_svc.ko`, `icnss2.ko` |
+| `ipc_log_string` | `cnss2.ko`, `cnss_plat_ipc_qmi_svc.ko`, `icnss2.ko` |
+| `msm_dump_data_register_nominidump` | `cnss2.ko` |
+| `msm_gpio_mpm_wake_set` | `cnss2.ko` |
+| `msm_minidump_add_region` | `cnss2.ko` |
+| `msm_minidump_remove_region` | `cnss2.ko` |
+| `qcom_iommu_get_mappings_configuration` | `qca_cld3_kiwi_v2.ko`, `qca_cld3_peach.ko` |
+| `qcom_iommu_set_fault_handler_irq` | `cnss2.ko` |
+| `qcom_smem_get` | `cnss2.ko` |
+| `qcom_va_md_add_region` | `qca_cld3_kiwi_v2.ko`, `qca_cld3_peach.ko`, `qca_cld3_qca6750.ko` |
+| `qcom_va_md_register` | `qca_cld3_kiwi_v2.ko`, `qca_cld3_peach.ko`, `qca_cld3_qca6750.ko` |
+| `qcom_va_md_unregister` | `qca_cld3_kiwi_v2.ko`, `qca_cld3_peach.ko`, `qca_cld3_qca6750.ko` |
+| `qmp_get` | `cnss2.ko`, `icnss2.ko` |
+| `qmp_put` | `cnss2.ko`, `icnss2.ko` |
+| `qmp_send` | `cnss2.ko`, `icnss2.ko` |
+| `socinfo_get_serial_number` | `icnss2.ko` |
+| `walt_get_cpus_taken` | `qca_cld3_kiwi_v2.ko`, `qca_cld3_peach.ko` |
+
+No new production dispatch or test-02 package was made. SELinux5/5 and rfkill15
+results above remain source-integration evidence, not a new successful build log.
+Remaining acceptance: real missing provider ELFs or an authoritative ROM export
+symvers, then strict zero-unverified preflight, full stock+ROM CRC build gates,
+and only then publication. Input binaries are preserved locally under ignored
+artifacts/test02-rom-provider-inputs/; none belong in Git.
