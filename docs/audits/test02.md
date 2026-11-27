@@ -115,3 +115,18 @@ error if the protected-export fix does not explain it; green final stock+ROM ABI
 and Image/IKCONFIG gates; a successful full build and verified AK3 ZIP. The supplied
 late dmesg alone is insufficient to claim Wi-Fi loads100%. No unverified ZIP is
 placed into local-builds/test-02.
+
+## Live execution
+
+Implementation commit: `49b455d458bda1433c1ad9bc7cdfb34d9c608cbf`.
+- ci-validate run **46035224939**: **success**, including new Rust and SELinux fixtures.
+- build-oneplus run **46035380039**: **failure** in ROM evidence preflight,
+  exit2, `missing_provider=181 missing_symbol=0 changed_crc=0`.
+  BORE=false; selected only6.1.118. The6.1.141 matrix job skipped all target steps.
+  Compilation/packaging did NOT run; no claim of a new kernel CRC/build PASS.
+- No test-02 ZIP or SHA256 exists. Do not re-label test-01 as test-02.
+
+Temporary input ELFs/logs were preserved under ignored local
+`artifacts/test02-diagnostic-inputs/` (INPUTS.sha256), and exact-source experiments
+under `artifacts/test02-source-evidence/`, before emptying `.tmp/`. No .ko/ZIP
+was added to Git; local-builds/test-01 checksum still passes.

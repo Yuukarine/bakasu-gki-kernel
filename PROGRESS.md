@@ -210,9 +210,9 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 ## test-02 — ROM 16.0.3.500 Wi-Fi / SELinux integration
 - [x] Checkpoint: clean HEAD 490214e19f8b969863e6ce99da4c4504261c8240; baseline tracked tree saved in artifacts/test02-transaction/baseline.tar.
 - [x] Working kernel evidence: uname 6.1.118-android14-OP-BAKASU-huangdihd; active WLAN qca_cld3_qca6750 + icnss2 (NOT kiwi + cnss2). Both configs CFG80211=n, RFKILL=m, MODVERSIONS=y, TRIM_UNUSED_KSYMS=n. Do not blindly enable CFG80211 or rename UTS to module directory.
-- [ ] Extract ROM module import/export CRC text; classify provider coverage and compare actual test-01 Image exports.
-- [ ] Integrate complete upstream SUSFS manual SELinux hooks and hard completeness gate.
-- [ ] Rust module ABI gate / full local verification / commit / live CI.
+- [x] Extract ROM module import/export CRC text; classify provider coverage and compare actual test-01 Image exports (coverage gap recorded below).
+- [x] Integrate complete upstream SUSFS manual SELinux hooks and hard completeness gate.
+- [x] Rust module ABI gate / full local verification / commit49b455d / live ci-validate46035224939 SUCCESS.
 - [ ] Production build and stock+ROM ABI evidence, verified test-02 package, temporary cleanup.
 - [x] ROM evidence captured in configs/abi/ace3v-cn01-16.0.3.500/:16 modules,3081 imports,730 unique kernel imports match actual test-01 Image; unknown external providers181 import rows /122 symbols. Complete gate deliberately FAILS (exit2, missing_provider=181 missing_symbol=0 changed_crc=0). This is NOT a claim of181 absent modules.
 - [x] Proved independent rfkill blocker: compiled349-entry protected-export table in Image at20958432 includes15 rfkill exports; embedded key serial630A085A222B74A765E50DCFB7F2018AB07A3228 differs ROM PKCS7 signer1921C1793467BA60164A1DCC62D79C2464532391. prepare_rom_module_exports.py removes only those15, retains334 and SIG_PROTECT/CRC checks. BASELINE blocked / MODIFIED allowed / ROLLBACK blocked, all exit0; restored SHA62511dd5ef670948b78639e9ba1e877850998c1d6aad9a92bfaf260d89b694a7.
@@ -220,3 +220,7 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - [x] Full local gates PASS: cargo fmt,clippy -D warnings,10 unit tests,--locked release; bash/sh syntax; ShellCheck0.11.0; actionlint1.7.12; YAML; all8 tests/*.sh; git diff --check. Literal outputs: artifacts/test02-transaction/local-gates.log. Initial lint SC1007/SC2016/SC2005 corrected and full suite rerun exit0.
 - [x] Rust verify-module-abi + strict fixtures added; stock gate remains separate. Dispatch-only production workflows prevent accidental push builds; CI runs all tests/*.sh.
 - [ ] Remote CI and OnePlus dispatch outcome (BORE=false); package remains blocked pending independently verified provider exports. NO-GO, not100% completed, no test-02 ZIP claimed.
+
+- [x] Remote CI46035224939 success, gh run watch exit0. Build dispatch46035380039 (enable_bore=false, bootstrap=false, single6.1.118) correctly FAILS ROM evidence preflight with181 unresolved provider imports, exit2; gh run watch exit1. No compilation/package occurred; not a successful production build. Logs: artifacts/test02-transaction/{ci-validate.log,build-failed.log,build-jobs.json}.
+- [x] Original diagnostic inputs preserved in ignored artifacts/test02-diagnostic-inputs/ (INPUTS.sha256); exact source experiment in artifacts/test02-source-evidence/. All .tmp/ entries removed. local-builds/test-01 checksum PASS; test-02 not created.
+- [ ] BLOCKED acceptance: supply independently verified provider exports for remaining122 symbols /181 imports before a legitimate green production build and package-local test-02. Initial loader logs absent; no claim Wi-Fi loads100%. Detailed evidence and table: docs/audits/test02.md.
