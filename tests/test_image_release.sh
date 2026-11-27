@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-grep -Fq 'stock_uname: 6.1.118-android14-11-o-gac2e718ebee6,' "$root/.github/workflows/build-oneplus.yml"
-if grep -Fq 'stock_uname: 6.1.118-android14-11-o-gac2e718ebee,' "$root/.github/workflows/build-oneplus.yml"; then
+full_target=6.1.118-android14-11-o-gac2e718ebee6
+truncated_target=${full_target%6}
+grep -Fq "stock_uname: ${full_target}," "$root/.github/workflows/build-oneplus.yml"
+if grep -Fq "stock_uname: ${truncated_target}," "$root/.github/workflows/build-oneplus.yml"; then
   echo 'truncated Ace 3V target remains in workflow' >&2
   exit 1
 fi
@@ -30,10 +32,10 @@ printf '%s\n' 'Linux version 6.1.118-android14-11-o-gac2e718ebee6-dirty (builder
 EOF
 if PATH="$tmp:$PATH" "$root/scripts/verify_image_release.sh" --image "$tmp/Image" --expected 6.1.118-android14-11-o-gac2e718ebee6 >"$tmp/dirty.out" 2>&1; then echo 'dirty release unexpectedly passed' >&2; exit 1; fi
 grep -Fq 'actual=6.1.118-android14-11-o-gac2e718ebee6-dirty' "$tmp/dirty.out"
-cat > "$tmp/strings" <<'EOF'
+cat > "$tmp/strings" <<EOF
 #!/bin/sh
-printf '%s\n' 'Linux version 6.1.118-android14-11-o-gac2e718ebee (builder)'
+printf '%s\\n' 'Linux version ${truncated_target} (builder)'
 EOF
 if PATH="$tmp:$PATH" "$root/scripts/verify_image_release.sh" --image "$tmp/Image" --expected 6.1.118-android14-11-o-gac2e718ebee6 >"$tmp/truncated.out" 2>&1; then echo 'truncated release unexpectedly passed' >&2; exit 1; fi
-grep -Fq 'actual=6.1.118-android14-11-o-gac2e718ebee' "$tmp/truncated.out"
+grep -Fq "actual=${truncated_target}" "$tmp/truncated.out"
 printf 'image release fixtures: PASS\n'
