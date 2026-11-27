@@ -49,8 +49,4 @@ jobs:
       - name: Fixture gates
         run: |
           set -euo pipefail
-          tests/test_kconfig.sh
-          tests/test_abi_crc.sh
-          tests/test_anykernel.sh
-          tests/test_driver_name.sh
-          tests/test_image_release.sh
+          for test in tests/*.sh; do bash "$test"; done

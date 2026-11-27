@@ -11,8 +11,6 @@ on:
       stock_uname: {description: Optional stock uname banner for cache validation, required: false, type: string}
       toolchain: {description: Toolchain identity for cache validation, required: false, default: clang-r547379, type: string}
       bootstrap_stock_symvers: {description: Build unpatched baseline only after cache/prebuilt miss, required: false, default: false, type: boolean}
-  push:
-    paths: ['configs/**', 'patches/**', 'scripts/**', '.github/workflows/build-gki.yml']
 permissions: {contents: read}
 jobs:
   build:

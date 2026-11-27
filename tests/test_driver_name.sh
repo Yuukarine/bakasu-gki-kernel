@@ -20,6 +20,7 @@ CUSTOM_DRIVER_NAME="$name" "$root/scripts/set_bakasu_driver_name.sh" --source-di
 grep -Fqx "KSU_VERSION_FULL := $name" "$tmp/source/kernel/Kbuild"
 grep -Fqx 'KSU_VERSION := 30701' "$tmp/source/kernel/Kbuild"
 
+# shellcheck disable=SC2016 # Literal dollar is an intentional invalid input
 for invalid in 'bad"name' 'bad$name' $'bad\nname' "$(printf 'a%.0s' {1..65})"; do
   if CUSTOM_DRIVER_NAME="$invalid" "$root/scripts/set_bakasu_driver_name.sh" --source-dir "$tmp/source" >"$tmp/error" 2>&1; then
     echo 'invalid driver name unexpectedly passed' >&2

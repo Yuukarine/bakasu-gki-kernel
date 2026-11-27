@@ -1,0 +1,17 @@
+# module sha256 vermagic
+btqca.ko	0e59e83890bca7aca12137b9681913f381798dd9a1f9d8966d51e5942a2a2578	6.1.118-android14-11-o-g7c70fb1cc0b8 SMP preempt mod_unload modversions aarch64
+cfg80211.ko	709da4b2257b565120103a0a92a933ba51d4a6b92be63aacaa6aac59d8762c7a	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+cnss2.ko	b54f394be55588ff4b6d22f4829f45e8c8c7191d4200cae94b49f9421a6994e0	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+cnss_nl.ko	8b4e5afb883ef88b4194cae6df7c574362cd5f1373af09b27ca7f41bac07b2c2	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+cnss_plat_ipc_qmi_svc.ko	507058ae097637c063291ee817a9df8334a0b9d3d5aba4c975100d5f7e41381c	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+cnss_prealloc.ko	28c16dea327c1cc5a43176afdf7b89905bdc8b50fd5de59a1e781932b620ae7f	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+cnss_utils.ko	d032cd960651c39f90441235412f7d15e861f80c17eccfc4dbb876a2742f843e	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+icnss2.ko	77212d52c8e8f9925b90a337164bd0d8e7bbb6fc62f2d563fdeb780bfb1bea9f	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+mac80211.ko	3829cef3438458ff2e9f67dbad28fe6f9f5427d2a5d5584d3c82fff996ae8918	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+qca_cld3_kiwi_v2.ko	641958a086e97a2e7e0161cba1c2deb08b992c4295aee27ba472e628606ba722	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+qca_cld3_peach.ko	865ee338e27c5916b1ab1e62d437bb4beed6145aa7e22147096099d6daff79e0	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+qca_cld3_qca6750.ko	cdd5dec234b20606ad6caa47fb38dd3985c5202c70f859af04e1084004aff18a	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+radio-i2c-rtc6226-qca.ko	5ddf2ddc7ec319a3ec26581a218b67b60e5982ef849802b69caa34ad916fa92e	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+rfkill.ko	cde12bdc12c2057fb93bc5bb33a5e05ab6a4b6ef1f41d2c56eb4f3d96da274a0	6.1.118-android14-11-o-g7c70fb1cc0b8 SMP preempt mod_unload modversions aarch64
+rmnet_wlan.ko	a1e02f69bd9a71603d23f293eb17a80aa0c38d8d2bbbe3ee04af0535a1689434	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64
+wlan_firmware_service.ko	93738e4901d34781f53f47c9f803e5846ce8f0efd0d69ba2c2ef10d6aaf57240	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64

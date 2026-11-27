@@ -1,3 +1,5 @@
+mod module_abi;
+
 use std::collections::BTreeMap;
 use std::env;
 use std::fmt::Write as _;
@@ -17,7 +19,7 @@ fn read_file(path: &Path) -> Vec<u8> {
 
 fn usage() -> ! {
     eprintln!(
-        "usage: ktool <inspect-image|verify-abi|verify-kconfig|inspect-boot|package-local> ..."
+        "usage: ktool <inspect-image|verify-abi|verify-module-abi|verify-kconfig|inspect-boot|package-local> ..."
     );
     process::exit(2)
 }
@@ -620,6 +622,7 @@ fn main() {
     let result = match command.as_str() {
         "inspect-image" => inspect_image(&args),
         "verify-abi" => verify_abi(&args),
+        "verify-module-abi" => module_abi::run(&args),
         "verify-kconfig" => verify_kconfig(&args),
         "inspect-boot" => inspect_boot(&args),
         "package-local" => package_local(&args),

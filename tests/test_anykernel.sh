@@ -114,7 +114,7 @@ for entry in META-INF/com/google/android/update-binary META-INF/com/google/andro
   unzip -Z1 "$pass_zip" | sed 's#^\./##' | grep -Fxq "$entry" || { echo "missing package entry: $entry" >&2; exit 1; }
 done
 if unzip -Z1 "$pass_zip" | grep -Eq '(^|/)\.git(/|$)|(^|/)fixture-pass/'; then echo 'nested or .git entry in package' >&2; exit 1; fi
-echo "$(sha256sum "$pass_zip")" | cmp -s - "$pass_zip.sha256" || { echo 'package checksum mismatch' >&2; exit 1; }
+sha256sum "$pass_zip" | cmp -s - "$pass_zip.sha256" || { echo 'package checksum mismatch' >&2; exit 1; }
 
 mkdir -p "$tmp/extracted-$family"
 unzip -q "$pass_zip" -d "$tmp/extracted-$family"

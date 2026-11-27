@@ -1,6 +1,6 @@
 # feature	source_kind	source_url	ref	kconfig_fragment	commit_sha
 osm0sis-anykernel3	upstream-tree	https://github.com/osm0sis/AnyKernel3.git	master	-	41f04bdb4ee30a44e429c2c1131d5e8bb32b15f1
-bakasu	upstream-tree	https://github.com/Baka-SU/BakaSU.git	main	-
+bakasu	upstream-tree	https://github.com/Baka-SU/BakaSU.git	main	-	cac1e79355ef451539f5c5ba9dc2bda1c64069de
 susfs-v2.4.0	upstream-tree	https://gitlab.com/simonpunk/susfs4ksu.git	gki-android14-6.1	-	f76b81f2a6bf98e4029cc0c823c054edbec29803
 unicode-bypass-fix	patch-c	https://github.com/Baka-SU/BakaSU.git	main	-
 faster-sdp-900ma	patch-c	https://github.com/Bouteillepleine/OnePlus-BakaSu_NMS.git	master	-

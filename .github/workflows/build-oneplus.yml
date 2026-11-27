@@ -13,8 +13,6 @@ on:
       bootstrap_stock_symvers: {description: Build unpatched stock baseline on cache miss, required: false, default: false, type: boolean}
       enable_bore: {description: Apply BORE only when HMBIRD is disabled, required: false, default: false, type: boolean}
       toolchain: {description: Toolchain identity for cache validation, required: false, default: clang-r547379, type: string}
-  push:
-    paths: ['configs/**', 'patches/**', 'scripts/**', '.github/workflows/build-oneplus.yml']
 permissions: {contents: read}
 jobs:
   build:
@@ -55,6 +53,14 @@ jobs:
           set -euo pipefail
           cargo build --release --locked --manifest-path tools/ktool/Cargo.toml
           echo "KTOOL_BIN=$GITHUB_WORKSPACE/tools/ktool/target/release/ktool" >> "$GITHUB_ENV"
+      - name: ROM module evidence preflight (Ace 3V 16.0.3.500)
+        if: ${{ matrix.stock_uname == '6.1.118-android14-11-o-gac2e718ebee6' && (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) }}
+        run: |
+          set -euo pipefail
+          # This recovered test-01 export subset is input coverage evidence only.
+          # Unresolved external providers MUST block before spending a kernel build.
+          profile=configs/abi/ace3v-cn01-16.0.3.500
+          bash scripts/verify_wifi_abi.sh --kernel "$profile/test01-kernel-imports.symvers"
       - name: Free runner disk space
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
@@ -116,6 +122,9 @@ jobs:
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
           key: stock-module-symvers-oneplus-${{ matrix.kmi }}-${{ matrix.stock_uname }}-${{ matrix.page_size }}-${{ github.sha }}
+      - name: Preserve verified ROM rfkill loading with the custom kernel key
+        if: ${{ matrix.stock_uname == '6.1.118-android14-11-o-gac2e718ebee6' && (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) }}
+        run: python3 scripts/prepare_rom_module_exports.py --source .tmp/kernel_src/kernel_platform/common --exports configs/abi/ace3v-cn01-16.0.3.500/exports.tsv
       - name: Apply declared patch sources after stock baseline resolution
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:
@@ -128,9 +137,12 @@ jobs:
         run: |
           set -euo pipefail
           git clone --depth 1 --branch "$BAKASU_REF" "$BAKASU_REPO" .tmp/BakaSU
+          git -C .tmp/BakaSU fetch --depth 1 origin cac1e79355ef451539f5c5ba9dc2bda1c64069de
+          git -C .tmp/BakaSU checkout --detach FETCH_HEAD
           common=.tmp/kernel_src/kernel_platform/common
           test -d "$common/drivers" && test -f "$common/drivers/Kconfig" && test -f "$common/drivers/Makefile"
           ln -s "$GITHUB_WORKSPACE/.tmp/BakaSU/kernel" "$common/drivers/kernelsu"
+          # shellcheck disable=SC2016 # Kbuild variable must remain literal
           grep -q 'obj-$(CONFIG_KSU) += kernelsu/' "$common/drivers/Makefile" || printf '\nobj-$(CONFIG_KSU) += kernelsu/\n' >> "$common/drivers/Makefile"
           grep -q 'source "drivers/kernelsu/Kconfig"' "$common/drivers/Kconfig" || sed -i '/endmenu/i source "drivers/kernelsu/Kconfig"' "$common/drivers/Kconfig"
       - name: Apply SUSFS v2.4.0 kernel integration
@@ -138,9 +150,31 @@ jobs:
         run: |
           set -euo pipefail
           git clone --depth 1 --branch "$SUSFS_REF" "$SUSFS_REPO" .tmp/susfs
+          git -C .tmp/susfs fetch --depth 1 origin f76b81f2a6bf98e4029cc0c823c054edbec29803
+          git -C .tmp/susfs checkout --detach FETCH_HEAD
           git clone --depth 1 https://github.com/Bouteillepleine/kernel_patches.git .tmp/kernel_patches
+          git -C .tmp/kernel_patches fetch --depth 1 origin ed778e9e89ffbd6cca1bb83de8a686bb10b01dc6
+          git -C .tmp/kernel_patches checkout --detach FETCH_HEAD
+          # BakaSU detects the SUSFS hooks.c selector and then uses its manual
+          # backend. Retain ALL original selinuxfs hunks instead of mixing that
+          # backend with the helper's auto-hook-only policy. No C patch is added.
+          python3 - <<'PY'
+          from pathlib import Path
+          helper = Path('.tmp/kernel_patches/scripts/apply_susfs_kernel.sh')
+          text = helper.read_text()
+          drop = '--drop security/selinux/selinuxfs.c '
+          reject = "    if grep -qE 'ksu_selinux_hide_enabled|fake_status|initialize_fake_status|my_sel_open_handle_status' security/selinux/selinuxfs.c; then"
+          assert text.count(drop) == 1, 'pinned helper drop policy changed'
+          assert text.count(reject) == 1, 'pinned helper verification policy changed'
+          start = text.index(reject)
+          end = text.index('    fi\n', start) + len('    fi\n')
+          text = (text[:start] + text[end:]).replace(drop, '')
+          helper.write_text(text)
+          PY
           common=.tmp/kernel_src/kernel_platform/common
-          COMMON_KERNEL_FOLDER="$PWD/$common" SUSFS_FOLDER="$PWD/.tmp/susfs" KSU_FOLDER="$PWD/.tmp/BakaSU" ANDROID_VER=android14 KERNEL_VER=6.1 SUSFS_KERNEL_BRANCH=gki-android14-6.1 bash .tmp/kernel_patches/scripts/apply_susfs_kernel.sh all
+          mkdir -p artifacts "$PWD/.tmp/selinux-helper"
+          TMPDIR="$PWD/.tmp/selinux-helper" COMMON_KERNEL_FOLDER="$PWD/$common" SUSFS_FOLDER="$PWD/.tmp/susfs" KSU_FOLDER="$PWD/.tmp/BakaSU" ANDROID_VER=android14 KERNEL_VER=6.1 SUSFS_KERNEL_BRANCH=gki-android14-6.1 bash .tmp/kernel_patches/scripts/apply_susfs_kernel.sh all | tee artifacts/susfs-integration.log
+          scripts/verify_selinux_hooks.sh --source "$common" --patch "$PWD/.tmp/susfs/kernel_patches/50_add_susfs_in_gki-android14-6.1.patch" --log artifacts/susfs-integration.log | tee -a artifacts/susfs-integration.log
           sed -i '/#define SUSFS_LOGE(fmt, ...)/a #define SUSFS_LOGI_RL(fmt, ...) do { } while (0)\n#define SUSFS_LOGE_RL(fmt, ...) do { } while (0)' "$common/fs/susfs.c"
       - name: Set custom BakaSU driver display name
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
@@ -184,6 +218,9 @@ jobs:
           test -s "$RUNNER_TEMP/stock-Module.symvers"
           test -s Module.symvers
           if [[ "${{ inputs.enable_bore || false }}" == true ]]; then scripts/verify_abi_crc.sh --bore "$RUNNER_TEMP/stock-Module.symvers" Module.symvers; else scripts/verify_abi_crc.sh "$RUNNER_TEMP/stock-Module.symvers" Module.symvers; fi
+      - name: ROM system/vendor WLAN ABI gate before package
+        if: ${{ matrix.stock_uname == '6.1.118-android14-11-o-gac2e718ebee6' && (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) }}
+        run: bash scripts/verify_wifi_abi.sh --kernel Module.symvers
       - name: Package AnyKernel ZIP and checksum
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: scripts/package_anykernel.sh --template anykernel/oneplus --image out/arch/arm64/boot/Image --name "oneplus-${{ matrix.device }}-${{ matrix.stock_uname }}" --output-dir artifacts
