@@ -4,6 +4,7 @@ on:
     inputs:
       source_repo: {description: OnePlusOSS kernel source URL, required: false, default: https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git, type: string}
       source_ref: {description: Optional source branch or SHA override, required: false, default: "", type: string}
+      modules_ref: {description: Optional OnePlus modules/devicetree branch or SHA override, required: false, default: "", type: string}
       stock_symvers_path: {description: Optional stock Module.symvers path, required: false, type: string}
       stock_symvers_url: {description: Optional stock Module.symvers URL, required: false, type: string}
       gki_prebuilt_symvers: {description: Optional GKI prebuilt Module.symvers path, required: false, type: string}
@@ -21,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.118-android14-11-o-gac2e718ebee6, source_ref: 2f2512ac1091bb2b28c20306fa86d890e8f3f01f, page_size: 4096, hmbird: false}
+          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.118-android14-11-o-gac2e718ebee6, source_ref: 65c3035422d899d95bfde4e30dc426712ffe52f2, modules_ref: ce7f91fa81af835ce1b70abbd8aca4b876c924a3, page_size: 4096, hmbird: false}
           - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.141-android14-11-o-gffc54a6d2287, source_ref: 3bcb2b3b5f0ad367fef9c7463be0cb17e0b7c2a8, page_size: 4096, hmbird: false}
     runs-on: ubuntu-24.04
     env:
@@ -32,7 +33,7 @@ jobs:
       SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git' }}
       SOURCE_REF: ${{ inputs.source_ref || matrix.source_ref }}
       MODULES_REPO: https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm7675.git
-      MODULES_REF: oneplus/sm7675_b_16.0.0_ace_3v
+      MODULES_REF: ${{ inputs.modules_ref || matrix.modules_ref || 'oneplus/sm7675_b_16.0.0_ace_3v' }}
       BAKASU_REPO: https://github.com/Baka-SU/BakaSU.git
       BAKASU_REF: main
       SUSFS_REPO: https://gitlab.com/simonpunk/susfs4ksu.git

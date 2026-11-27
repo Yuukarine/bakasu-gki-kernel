@@ -5,6 +5,7 @@ toolchains/
 *.zip
 *.img
 Image*
+local-builds/
 
 artifacts/
 PROGRESS.md
