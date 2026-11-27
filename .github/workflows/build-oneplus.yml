@@ -60,7 +60,9 @@ jobs:
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
           set -euo pipefail
-          git clone --depth 1 --branch "$MODULES_REF" "$MODULES_REPO" .tmp/kernel_src
+          git clone --depth 1 "$MODULES_REPO" .tmp/kernel_src
+          git -C .tmp/kernel_src fetch --depth 1 origin "$MODULES_REF"
+          git -C .tmp/kernel_src checkout --detach FETCH_HEAD
           mkdir -p .tmp/kernel_src/kernel_platform
           git clone --depth 1 "$SOURCE_REPO" .tmp/kernel_src/kernel_platform/common
           git -C .tmp/kernel_src/kernel_platform/common fetch --depth 1 origin "$SOURCE_REF"
