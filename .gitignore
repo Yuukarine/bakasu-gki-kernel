@@ -6,6 +6,7 @@ toolchains/
 *.img
 Image*
 local-builds/
+tools/ktool/target/
 
 artifacts/
 PROGRESS.md

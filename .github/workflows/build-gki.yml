@@ -34,6 +34,15 @@ jobs:
       SOURCE_REF: ${{ inputs.source_ref || 'main' }}
     steps:
       - uses: actions/checkout@v4
+      - name: Cache Rust ktool
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/ktool
+      - name: Build Rust ktool
+        run: |
+          set -euo pipefail
+          cargo build --release --locked --manifest-path tools/ktool/Cargo.toml
+          echo "KTOOL_BIN=$GITHUB_WORKSPACE/tools/ktool/target/release/ktool" >> "$GITHUB_ENV"
       - name: Free runner disk space
         run: |
           set -euo pipefail

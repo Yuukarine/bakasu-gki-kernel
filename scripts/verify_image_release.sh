@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify the built ARM64 Image advertises exactly the requested UTS release.
+# Thin compatibility wrapper around the Rust ARM64 Image/UTS gate.
 set -Eeuo pipefail
 usage(){ printf '%s\n' 'Usage: verify_image_release.sh --image FILE --expected RELEASE' >&2; }
 image='' expected=''
@@ -13,13 +13,13 @@ while (($#)); do
 done
 [[ -s $image ]] || { printf 'image release verification: FAIL: image missing or empty: %s\n' "$image" >&2; exit 1; }
 [[ $expected =~ ^[0-9]+\.[0-9]+\.[0-9]+-[^[:space:]+]+$ ]] || { printf 'image release verification: FAIL: invalid expected release: %s\n' "$expected" >&2; exit 1; }
-command -v file >/dev/null 2>&1 || { echo 'image release verification: FAIL: file command missing' >&2; exit 1; }
-command -v strings >/dev/null 2>&1 || { echo 'image release verification: FAIL: strings command missing' >&2; exit 1; }
-format=$(file -b "$image")
-[[ $format == *'Linux kernel ARM64 boot executable Image'* ]] || { printf 'image release verification: FAIL: unexpected format: %s\n' "$format" >&2; exit 1; }
-mapfile -t releases < <(strings -a "$image" | awk '$1 == "Linux" && $2 == "version" && $3 != "" { print $3 }' | LC_ALL=C sort -u)
-((${#releases[@]} == 1)) || { printf 'image release verification: FAIL: expected one Linux version, found %s: %s\n' "${#releases[@]}" "${releases[*]:-none}" >&2; exit 1; }
-actual=${releases[0]}
-[[ $actual == "$expected" ]] || { printf 'image release verification: FAIL: expected=%s actual=%s\n' "$expected" "$actual" >&2; exit 1; }
-[[ $actual != *+ && $actual != *-dirty ]] || { printf 'image release verification: FAIL: forbidden suffix in %s\n' "$actual" >&2; exit 1; }
-printf 'image release verification: PASS (format=%s; Linux version %s)\n' "$format" "$actual"
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+default_bin="$root/tools/ktool/target/release/ktool"
+ktool_bin=${KTOOL_BIN:-$default_bin}
+if [[ ! -x $ktool_bin ]]; then
+  command -v cargo >/dev/null 2>&1 || { echo 'ktool unavailable: cargo is required to build it' >&2; exit 2; }
+  cargo build --release --locked --manifest-path "$root/tools/ktool/Cargo.toml" >&2
+  ktool_bin=$default_bin
+fi
+[[ -x $ktool_bin ]] || { echo "ktool binary not executable: $ktool_bin" >&2; exit 2; }
+"$ktool_bin" inspect-image "$image" --expected-uts "$expected"

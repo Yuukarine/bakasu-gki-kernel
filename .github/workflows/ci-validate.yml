@@ -9,6 +9,20 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Cache Rust ktool
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/ktool
+      - name: Verify and build Rust ktool
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo --version
+          cargo fmt --check --manifest-path tools/ktool/Cargo.toml
+          cargo clippy --manifest-path tools/ktool/Cargo.toml --all-targets -- -D warnings
+          cargo test --manifest-path tools/ktool/Cargo.toml --locked
+          cargo build --release --locked --manifest-path tools/ktool/Cargo.toml
+          echo "KTOOL_BIN=$GITHUB_WORKSPACE/tools/ktool/target/release/ktool" >> "$GITHUB_ENV"
       - name: Shell syntax and lint
         run: |
           set -euo pipefail

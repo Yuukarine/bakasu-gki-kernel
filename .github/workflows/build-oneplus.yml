@@ -44,6 +44,17 @@ jobs:
       KCFLAGS: -Wno-error=unused-function
     steps:
       - uses: actions/checkout@v4
+      - name: Cache Rust ktool
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tools/ktool
+      - name: Build Rust ktool
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
+        run: |
+          set -euo pipefail
+          cargo build --release --locked --manifest-path tools/ktool/Cargo.toml
+          echo "KTOOL_BIN=$GITHUB_WORKSPACE/tools/ktool/target/release/ktool" >> "$GITHUB_ENV"
       - name: Free runner disk space
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
