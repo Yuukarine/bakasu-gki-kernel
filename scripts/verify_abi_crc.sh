@@ -20,5 +20,5 @@ parse "$ref" "$tmp/ref" || exit 2; parse "$cand" "$tmp/cand" || exit 2
 awk -F '\t' 'NR==FNR{a[$1]=$2;next}{b[$1]=$2} END{for(s in a){if(!(s in b)){print "missing candidate symbol: " s; missing++}else if(a[s]!=b[s]){print "CRC mismatch: " s " reference=" a[s] " candidate=" b[s]; changed++}}for(s in b)if(!(s in a)){print "added candidate symbol: " s; added++} drift=changed+missing; print "__SUMMARY__\t" length(a) "\t" (drift+0) "\t" (changed+0) "\t" (missing+0) "\t" (added+0); if(drift)exit 1}' "$tmp/ref" "$tmp/cand" > "$tmp/report" || status=$?
 status=${status:-0}; sed '/^__SUMMARY__/d' "$tmp/report"; summary=$(grep '^__SUMMARY__' "$tmp/report" || true); [[ -n $summary ]] || { cat "$tmp/report" >&2; exit 2; }
 IFS=$'\t' read -r _ total drift changed missing added <<< "$summary"
-if (( status != 0 || drift != 0 )); then echo "CRC CHECK: FAIL ($drift drift; changed=$changed missing=$missing added=$added; reference_symbols=$total; bore=$bore)" >&2; exit 1; fi
-echo "CRC CHECK: PASS ($total symbols, zero CRC drift; added=$added non-reference exports; bore=$bore)"
+if (( status != 0 || drift != 0 )); then echo "CRC CHECK: FAIL ($drift drift; changed_crc=$changed missing_stock=$missing added=$added; reference_symbols=$total; bore=$bore)" >&2; exit 1; fi
+echo "CRC CHECK: PASS ($total reference symbols, zero CRC drift; missing_stock=0 changed_crc=0 added=$added non-reference exports; bore=$bore)"

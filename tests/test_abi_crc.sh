@@ -10,6 +10,10 @@ cp "$tmp/ref" "$tmp/candidate"
 BAKASU_WORK_ROOT="$tmp" "$root/scripts/verify_abi_crc.sh" --bore "$tmp/ref" "$tmp/candidate" | grep -F 'CRC CHECK: PASS'
 printf '0xCCCC foo vmlinux EXPORT_SYMBOL\n0xBBBB bar vmlinux EXPORT_SYMBOL_GPL\n' > "$tmp/drift"
 if BAKASU_WORK_ROOT="$tmp" "$root/scripts/verify_abi_crc.sh" --bore "$tmp/ref" "$tmp/drift" >/dev/null 2>&1; then echo 'CRC drift fixture unexpectedly passed' >&2; exit 1; fi
+printf '0xAAAA foo vmlinux EXPORT_SYMBOL\n' > "$tmp/missing"
+if BAKASU_WORK_ROOT="$tmp" "$root/scripts/verify_abi_crc.sh" "$tmp/ref" "$tmp/missing" >"$tmp/missing.out" 2>&1; then echo 'missing stock symbol fixture unexpectedly passed' >&2; exit 1; fi
+grep -Fq 'missing candidate symbol: bar' "$tmp/missing.out"
+grep -Fq 'missing_stock=1' "$tmp/missing.out"
 printf '0xDDDD explicit vmlinux EXPORT_SYMBOL\n' > "$tmp/explicit"
 printf '0xEEEE cache vmlinux EXPORT_SYMBOL\n' > "$tmp/cache/Module.symvers"
 printf '0xFFFF prebuilt vmlinux EXPORT_SYMBOL\n' > "$tmp/prebuilt"

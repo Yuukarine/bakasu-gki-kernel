@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.118-android14-11-o-gac2e718ebee, source_ref: 2f2512ac1091bb2b28c20306fa86d890e8f3f01f, page_size: 4096, hmbird: false}
+          - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.118-android14-11-o-gac2e718ebee6, source_ref: 2f2512ac1091bb2b28c20306fa86d890e8f3f01f, page_size: 4096, hmbird: false}
           - {device: ace3v, soc: SM7675, kmi: android14-6.1, stock_uname: 6.1.141-android14-11-o-gffc54a6d2287, source_ref: 3bcb2b3b5f0ad367fef9c7463be0cb17e0b7c2a8, page_size: 4096, hmbird: false}
     runs-on: ubuntu-24.04
     env:
