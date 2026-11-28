@@ -1,8 +1,10 @@
 # Ace 3V CN01 16.0.3.500 — test-02 investigation
 
-## Verdict: NO-GO pending complete ROM provider evidence
+## Current verdict: GO — production and offline gates passed (test-02)
 
-No production/test-02 ZIP is certified by this audit. No device commands were run.
+Production run46100637013 and offline checks now PASS; test-02 is published locally.
+No device commands were run; runtime Wi-Fi is not claimed as tested.
+The earlier NO-GO entries below are historical and superseded by the release record.
 No change to UTS_RELEASE, CONFIG_MODULE_FORCE_LOAD, or radio-related Kconfig is
 justified by the available evidence. The expected release remains
 `6.1.118-android14-11-o-gac2e718ebee6`.
@@ -199,3 +201,15 @@ MODULE ABI CHECK: PASS (imports=3081 modules=16 missing_provider=0 missing_symbo
 Evidence: `vendor-boot-inputs.tsv` and `vendor-boot-resolved-imports.tsv` in the ABI profile. The previous unresolved-provider statements above are historical, superseded by this supplied-image evidence. No gate relaxed; no MODULE_FORCE_LOAD. This confirms provider coverage for the16 consumers, not a runtime phone test or a claim that all632 modules' transitive imports were tested. Source extract/parser and literal transaction outputs are preserved in ignored `artifacts/test02-transaction/vendor-boot-profile/`.
 
 Production CI/build/artifact acceptance remains to be executed.
+
+## Final test-02 release verification
+
+Build commit79a40b99c70267a1cc11c5834083465d41e150aa; CI46100339988 success; production46100637013 success. First attempt46099557100 correctly failed on moving-branch/pinned-SHA mismatch,then the resolver was corrected to fetch the immutable commit,without updating the kernel/Baka/SUSFS pins or relaxing any ABI gate.
+
+Actual build:preflight and final ROM ABI both PASS(3081 imports,16 consumers,0 missing_provider,0 missing_symbol,0 changed_crc); stock CRC PASS(15615 reference symbols,0 missing_stock,0 changed_crc,29 additions); SELinux manual5/5 hunks /all4 surfaces PASS; rfkill exactly15 removed /334 retained; CONFIG_MODULE_SIG_PROTECT unchanged. Resolver cache SHAeda4a3c18753802eea95f7c1e90b26f932a1d98ce7fa530335bee1e8997b87f4.
+
+Offline:new raw ARM64 Image(37075456 bytes)exact UTS;IKCONFIG + verify-kconfig PASS;15285 actual Image exports recovered and all730 independent ROM kernel requirements match; full3081-import ROM gate rerun PASS against these actual new Image exports + extracted ROM providers. The730 subset is not relabelled as full stock; full15615 stock evidence is in the live build log. unzip -tq,root AK3 layout,execute bits and checksum PASS.
+
+Local ZIP:local-builds/test-02/ace3v-ak3-test-02.zip
+SHA256:16dd283512ad6230c488b08257097c767bb527e27ab08d4e0d9c27f8655d1dac
+Changelog:local-builds/test-02/CHANGELOG.md;INDEX.md updated by ktool package-local. Original test-01 checksum still passes. Literal logs/commands/recovery metadata:artifacts/test02-transaction/vendor-boot-profile/offline/.
