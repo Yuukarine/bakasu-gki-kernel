@@ -146,9 +146,11 @@ jobs:
         with:
           path: ${{ runner.temp }}/cache-Module.symvers
           key: stock-module-symvers-oneplus-${{ matrix.kmi }}-${{ matrix.stock_uname }}-${{ matrix.page_size }}-${{ github.sha }}
-      - name: Preserve verified ROM rfkill loading with the custom kernel key
+      - name: Preserve verified ROM rfkill and TIPC loading with the custom kernel key
         if: ${{ matrix.stock_uname == '6.1.118-android14-11-o-gac2e718ebee6' && (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) }}
-        run: python3 scripts/prepare_rom_module_exports.py --source .tmp/kernel_src/kernel_platform/common --exports configs/abi/ace3v-cn01-16.0.3.500/exports.tsv
+        run: |
+          python3 scripts/prepare_rom_module_exports.py --source .tmp/kernel_src/kernel_platform/common --exports configs/abi/ace3v-cn01-16.0.3.500/exports.tsv
+          python3 scripts/prepare_rom_module_exports.py --check-only --source .tmp/kernel_src/kernel_platform/common --exports configs/abi/ace3v-cn01-16.0.3.500/exports.tsv
       - name: Apply declared patch sources after stock baseline resolution
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         env:

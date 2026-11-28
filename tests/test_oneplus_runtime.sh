@@ -6,7 +6,7 @@ tmp=$(mktemp -d "$root/.tmp/oneplus-runtime.XXXXXX"); trap 'rm -rf "$tmp"' EXIT
 profile="$root/configs/abi/ace3v-cn01-16.0.3.500"
 # Real binary and real additional cellular inputs, never substitute import CRCs.
 bash "$root/scripts/verify_radio_abi.sh" --kernel "$profile/radio-kernel-evidence.symvers" > "$tmp/radio.out"
-grep -Fq 'PASS (imports=2309 modules=43 missing_provider=0 missing_symbol=0 changed_crc=0)' "$tmp/radio.out"
+grep -Fq 'PASS (imports=2642 modules=46 missing_provider=0 missing_symbol=0 changed_crc=0)' "$tmp/radio.out"
 sed '1d' "$profile/radio-kernel-evidence.symvers" > "$tmp/missing.symvers"
 if bash "$root/scripts/verify_radio_abi.sh" --kernel "$tmp/missing.symvers" > "$tmp/missing.out" 2>&1; then echo 'missing radio symbol passed' >&2; exit 1; fi
 grep -Fq 'missing_symbol:' "$tmp/missing.out"

@@ -42,3 +42,6 @@ rmnet_perf_tether.ko	154520686becbf1ca94d17cf7c40ac90f3cf6fd5a250c17310e95bacdcb
 rmnet_sch.ko	0a4f3fbf83ea0370b86ae148560fff0422b31d539d98b129bc955a0831e5fa85	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64	artifacts/test02-rom-provider-inputs/rmnet_sch.ko
 rmnet_shs.ko	d6f11758ff8d2624d50cd956f27a58f64f212938fe0b8c7292fb631838bd82fc	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64	artifacts/test02-rom-provider-inputs/rmnet_shs.ko
 rmnet_wlan.ko	a1e02f69bd9a71603d23f293eb17a80aa0c38d8d2bbbe3ee04af0535a1689434	6.1.118-android14-11-o-geb5e030f21ba SMP preempt mod_unload modversions aarch64	artifacts/test02-rom-provider-inputs/rmnet_wlan.ko
+gzvm.ko	8b47bff78bba7494543be1b6e87e58d85f75a9fb830cb09853a1ccb1c8382aad	6.1.118-android14-11-o-g7c70fb1cc0b8 SMP preempt mod_unload modversions aarch64	artifacts/test05-transaction/system-modules/gzvm.ko
+tipc.ko	6ec3904725f8cb8d97c8ed2b25389e91be663ef1f92c58162aef61586b9dbe70	6.1.118-android14-11-o-g7c70fb1cc0b8 SMP preempt mod_unload modversions aarch64	artifacts/test05-transaction/system-modules/tipc.ko
+diag.ko	f5e6fa6432545c2fdbd181cae88b7c6a69f927e0df14720127abdcfccca00783	6.1.118-android14-11-o-g7c70fb1cc0b8 SMP preempt mod_unload modversions aarch64	artifacts/test05-transaction/system-modules/diag.ko

@@ -418,3 +418,16 @@ Linux version 6.1.118-android14-11-o-gac2e718ebee6 (build-user@build-host) (Andr
   MODIFIED_FILE (tar),DIFF_FILE,VERIFICATION.txt,ROLLBACK.sh. The same network
   contract probe observes baseline FAIL(exit1),modified PASS(exit0),rollback
   FAIL(exit1); restored source bytes/hashes match pristine baseline.
+
+
+## test-05 cellular diagnosis (in progress)
+Read-only ADB confirms test04 actual /proc/version; uname is SUSFS-spoofed.
+Working baseline loads TIPC, test04 does not. NICM actually calls AF_TIPC=30; all
+four TIPC exports are blocked by the rfkill-only protected-export policy despite
+matching CRCs. All three reference workflows remove the entire protected list.
+Candidate instead permits exactly four verified TIPC exports and keeps other330
+protected rows plus signature/KMI checks. Cellular profile expanded2642/46, WLAN
+3081/16 unchanged. See docs/test05-cellular-audit.md and exact config-difference TSV.
+No claim of repaired on-device calls yet; no ADB writes. KPROBES baseline/test04
+are y; user requirement n awaits explicit clarification, no config changed.
+Local Rust12 tests, ShellCheck/actionlint/YAML and all11 shellfixtures PASS.
