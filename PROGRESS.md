@@ -439,3 +439,38 @@ rejected exit2: protected flag disabled/missing: CONFIG_KPROBES. Both supplied
 working and actual test04 use y. No gate/config weakened; explicit user decision
 pending before dispatch/build/package test05. No test05 ZIP or runtime repair
 claimed. Reference clones removed; sim_baseline and test01..04 hashes preserved.
+
+
+## test-05 approved build and offline release completed (2026-11-28 UTC)
+- User resolved KPROBES decision: keep CONFIG_KPROBES=y, matching supplied working
+  baseline and test04. No config changes and no gate weakened.
+- Built exact HEAD f26f3f41e252406cd450d091fb559b1206d78645 (TIPC4 policy9372f43).
+- ci-validate: https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/46137121691 PASS.
+- build-oneplus: https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/46146512176 PASS.
+  One selected6.1.118 target; BORE=false; unrelated matrix target build steps skipped.
+- Local fmt/clippy/12 Rust tests, Shell/YAML and11 fixture suites PASS; prior
+  ShellCheck/actionlint on unchanged HEAD PASS (local-gates.log).
+- Actual downloaded ZIP: SHA256 77c823cffaec54f47da3a18240ac2c7a2fc2376660122d204bf53679da62f0ef.
+- Published local-builds/test-05/ace3v-ak3-test-05.zip + .sha256 + CHANGELOG.md;
+  local-builds/INDEX.md appended through real ktool package-local. sha256sum-c PASS.
+- file Image: Linux kernel ARM64 boot executable Image, little-endian,4K pages;
+  raw38,013,440 bytes. Full banner:
+
+```
+Linux version 6.1.118-android14-11-o-gac2e718ebee6 (build-user@build-host) (Android (10087095, +pgo, +bolt, +lto, -mlgo, based on r487747c) clang version 17.0.2 (https://android.googlesource.com/toolchain/llvm-project d9f89f4d16663d5012e5c09495f3b30ece3d2362), LLD 17.0.2) #1 SMP PREEMPT Fri Mar 27 03:01:48 UTC 2026
+```
+
+- Embedded config equals runner kernel.config AND test04 config byte-for-byte;
+  CONFIG_KPROBES=y and ktool verify-kconfig PASS.
+- Stock15,615 missing_stock=0 changed_crc=0; WLAN3,081/16 and cellular2,642/46
+  missing_provider=0 missing_symbol=0 changed_crc=0. Repeated against recovered
+  actual Image exports, all15,285 vmlinux exports equal built Module.symvers.
+- Actual build log: SUSFS manual SELinux5/5 PASS; rfkill15/TIPC4 protected
+  exceptions applied;330 other protected exports retained. AK3 script unchanged.
+- unzip-tq, required root entries, executable tools and SHA256 PASS. No ADB or
+  fastboot during this build/package turn. Runtime4G/calls still await user trial.
+- All preexisting test01..04/baseline hashes preserved; own temporary reference
+  clones absent. .tmp/sim_baseline and .tmp/sim_debug retained as instructed.
+- Four native transaction roles reopened under artifacts/test05-transaction.
+  Same TIPC contract probe BASELINE exit1 / MODIFIED exit0 / ROLLBACK exit1;
+  original hashes restored; diff reconstructs changed policy. git status clean.
