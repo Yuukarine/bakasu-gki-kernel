@@ -452,6 +452,17 @@ fn verify_kconfig(args: &[String]) -> Result<(), String> {
             ));
         }
     }
+    // Every declared fragment is a contract, not just the shared Golden Stack.
+    // Otherwise an olddefconfig drop of OnePlus networking support went unnoticed.
+    for (symbol, expected) in &fragment {
+        let actual = cfg.get(symbol).map(String::as_str).unwrap_or("n");
+        if actual != expected {
+            return Err(format!(
+                "kconfig verification: FAIL: fragment mismatch {}={}, expected {}",
+                symbol, actual, expected
+            ));
+        }
+    }
     for symbol in [
         "CONFIG_KSU_DEBUG",
         "CONFIG_KSU_SUSFS_ENABLE_LOG",

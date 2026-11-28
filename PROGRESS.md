@@ -275,3 +275,68 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - [x] Literal full banner: Linux version 6.1.118-android14-11-o-gac2e718ebee6 (build-user@build-host) (Ubuntu clang version 18.1.3 (1ubuntu1), Ubuntu LLD 18.1.3) #1 SMP PREEMPT Fri Mar 27 03:01:48 UTC 2026
 - [x] ktool package-local published local-builds/test-03/ace3v-ak3-test-03.zip SHA256829dd62fe0211a5c3cfbdca8fa995d2bba11d5d1c25334b6be58a979cc047ffb; checksum/CHANGELOG/INDEX reopened. test-01 and test-02 original ZIP hashes still match. Final local gates rerun PASS; evidence artifacts/test03-transaction/final-local-gates.log.
 - [x] Cleanup completed: root .tmp/ is empty, including user-authorized boot_early/dmesg_early.log deletion; generated Rust test temp removed. No adb/fastboot; no ignored binary was staged. Release ledger committed separately from the build implementation.
+
+## test-04 — cellular regression audit / candidate (2026-11-28)
+
+- Preserved all eight `.tmp/sim_baseline` inputs (SHA256 ledger in local
+  `artifacts/test04-transaction/baseline-inputs.json`) and test-01..03 ZIPs.
+  No adb/fastboot. No SELinux/audit, rfkill export-policy, signature, UTS,
+  UAG/ZRAM/debug, AnyKernel core or kernel struct patches changed.
+- Mandatory skill discovery: `autoskills` and `findskills` commands absent
+  (exit127); loaded project/find-skills/systematic-debugging/verification skills
+  and ran `npx skills find 'linux kernel'` successfully; no skills installed.
+- Full reference clones: huangdihd/OnePlus_BakaSU_SUSFS main
+  `4cdf2311bc02555da0898a7de187cd63e239ff12`; Bouteillepleine/OnePlus-BakaSu_NMS
+  master `b33a6ce4b0eda13301b2f5ee499810fff719af04`; WildKernels/OnePlus_KernelSU_SUSFS
+  main `34eae44087999a2d5d1371b3fb1551fad711d32b`. These are complete build/patch
+  orchestration repos; actual common source `65c3035422d899d95bfde4e30dc426712ffe52f2`
+  and modules `ce7f91fa81af835ce1b70abbd8aca4b876c924a3` were also fetched and checked.
+  All three Ace3V manifests agree on those pins and Clang r487747c + thin LTO.
+- Proven build defect: previous TOOLCHAIN_ID claimed clang-r547379, while the
+  actual Image/config identified Ubuntu Clang18.1.3/pahole1.25. Now fetch and
+  verify actual Android Clang17.0.2 commit `28b975ada54f8610ed531a6b57253aed10e7c87d`
+  and pahole1.23 build-tools commit `d153b7ab4a4956198957e258d4f370e875c53059`
+  from the same Codelinaro manifests. Verify origin, commit, clean tracked tree,
+  binary version and hashes; reject arbitrary identity labels, cache exact pins,
+  export LLVM/PATH/PAHOLE before *any* kernel make. Keep deterministic build
+  identity/timestamp and truthful compiler banner. New stock baseline required
+  for the new toolchain identity; never reuse a differently labelled baseline.
+- Proven config gaps: test03 disables ADDRTYPE, IPv6 MASQUERADE, BPF stream parser,
+  several IPSET matches and logging targets present in the supplied working
+  config and reference network setup. OnePlus fragment restores these additive
+  capabilities; generic `ktool verify-kconfig` now checks EVERY declared fragment,
+  not only the hardcoded Golden Stack subset. Dropped ADDRTYPE/MASQUERADE/BPF
+  fixtures fail. Keep BBR/CAKE/PIE/security_dmesg_restrict and PHY/IPC/namespaces
+  unchanged: no causal evidence warrants changing their struct-sensitive ABI.
+  The reference IPv6_NAT_FIX only spoofs config_data, not runtime NAT: deliberately
+  NOT imported. `__ANDROID_COMMON_KERNEL__` has no conditional uses in this pinned
+  common tree (only build.config.common sets it); align compile flag but do not
+  claim it fixes a layout defect. Droidspaces task_struct/pid ghost patches,
+  BBG and module blacklists were inspected, not copied without a proven need.
+- Actual ROM cellular coverage: extracted 2,309 imports /43 ipam, rmnet, qmi, qrtr,
+  OPlus network/connectivity ELFs; recorded SHA256/vermagic and independent actual
+  providers. test03 recovered Image exports ALREADY pass all 2,309 (0 missing,
+  0 changed CRC). This rules out missing/versioned imports in this supplied set,
+  NOT every struct-layout or userspace handshake issue. Keep original 3,081 WLAN
+  imports intact; enforce BOTH sets on actual build Module.symvers and preflight.
+- Hook evidence: pinned BakaSU `kernel/feature/sucompat.c:402-409` marks nicmd's
+  vendor init descendant to skip sucompat, consistent with the working log;
+  SUSFS ioprio/getpriority filter checks caller uid>=10000 and normalized app ID,
+  so UID1001/radio is not directly selected. No speculative cred/socket/netlink,
+  binder, sk_buff or SELinux hook modifications.
+- Evidence limits: working log `dmesg_data.txt:179` proves IPA registration after
+  nicmd starts; source `vendor/qcom/opensource/dataipa/.../rmnet_ipa.c:2915`
+  logs that in ADD_MUX_CHANNEL just BEFORE the IPA registration call (the message
+  alone does not prove successful registration). Supplied failing radio log
+  contains no nicmd/DSI initialization syscall failure. Thus the exact cause of
+  0x1004 is NOT proven; toolchain/network fidelity changes form a controlled
+  test-04 candidate, not a claim of runtime cellular repair. No device test run.
+- Local gates: fmt/clippy(-D warnings)/12 Rust tests, Bash/POSIX syntax,
+  ShellCheck0.11.0/actionlint1.7.12, all 11 fixture suites, YAML, WLAN and cellular
+  evidence, diff --check PASS. Local real olddefconfig initially failed without
+  the modules-tree symlink target, then lacked shared IP_SET prerequisites when
+  tested alone; corrected the reference layout/merged shared+OnePlus fragments.
+  These are local experiment setup errors, not production-source defects.
+- Transaction: saved pristine tracked baseline archive before edits; native roles
+  under local `artifacts/test04-transaction/`; baseline/modified/rollback execute
+  the same network contract probe. Final remote/offline evidence follows below.

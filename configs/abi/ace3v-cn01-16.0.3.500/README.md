@@ -50,3 +50,20 @@ are not claimed as exhaustively checked by this profile.
 
 Working log loads qca_cld3_qca6750 + icnss2, not kiwi + cnss2. Both kernel configs
 have CFG80211=n and RFKILL=m. No blind Kconfig/UTS change is justified by these data.
+
+## test-04: independent cellular coverage
+
+`radio-imports.tsv` adds 2,309 actual ELF `__versions` requirements from 43
+ipam/rmnet/qmi/qrtr/OPlus networking modules, without replacing the 3,081 WLAN
+requirements. `radio-inputs.tsv` records each supplied ELF's SHA256, full vermagic
+and local evidence path. Providers are resolved only against the existing actual
+632-module inventory/export tables or recovered test-03 Image exports; there
+were no ambiguous or unresolved assignments. `radio-kernel-evidence.symvers`
+is a recovered **test-03 Image** subset for preflight coverage ONLY, not a stock
+baseline and never a replacement for the post-build gate on Module.symvers.
+
+`scripts/verify_radio_abi.sh --kernel Module.symvers` runs the same strict Rust
+gate. test-03 already passes all 2,309 cellular imports (0 missing/changed CRC).
+Thus these data do not establish a cellular symbol/CRC defect in test-03, and
+CRC equality does not prove radio userspace handshakes or all struct layouts.
+The new build runs WLAN and cellular gates independently before packaging.

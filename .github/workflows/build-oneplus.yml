@@ -12,7 +12,7 @@ on:
       target_stock_uname: {description: Optional single matrix target to run, required: false, default: "", type: string}
       bootstrap_stock_symvers: {description: Build unpatched stock baseline on cache miss, required: false, default: false, type: boolean}
       enable_bore: {description: Apply BORE only when HMBIRD is disabled, required: false, default: false, type: boolean}
-      toolchain: {description: Toolchain identity for cache validation, required: false, default: clang-r547379, type: string}
+      toolchain: {description: Toolchain identity for cache validation, required: false, default: android-clang-r487747c-pahole-1.23, type: string}
 permissions: {contents: read}
 jobs:
   build:
@@ -27,7 +27,7 @@ jobs:
       KMI: ${{ matrix.kmi }}
       STOCK_UNAME: ${{ matrix.stock_uname }}
       PAGE_SIZE: ${{ matrix.page_size }}
-      TOOLCHAIN_ID: ${{ inputs.toolchain || 'clang-r547379' }}
+      TOOLCHAIN_ID: ${{ inputs.toolchain || 'android-clang-r487747c-pahole-1.23' }}
       SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git' }}
       SOURCE_REF: ${{ inputs.source_ref || matrix.source_ref }}
       MODULES_REPO: https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm7675.git
@@ -39,7 +39,7 @@ jobs:
       ARCH: arm64
       LLVM: "1"
       JOBS: "2"
-      KCFLAGS: -Wno-error=unused-function
+      KCFLAGS: -Wno-error=unused-function -D__ANDROID_COMMON_KERNEL__
       KBUILD_BUILD_USER: build-user
       KBUILD_BUILD_HOST: build-host
       KBUILD_BUILD_VERSION: "1"
@@ -64,6 +64,7 @@ jobs:
           # Unresolved external providers MUST block before spending a kernel build.
           profile=configs/abi/ace3v-cn01-16.0.3.500
           bash scripts/verify_wifi_abi.sh --kernel "$profile/test01-kernel-imports.symvers"
+          bash scripts/verify_radio_abi.sh --kernel "$profile/radio-kernel-evidence.symvers"
       - name: Free runner disk space
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
@@ -75,7 +76,16 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y bc bison flex libelf-dev libssl-dev dwarves cpio rsync clang lld llvm
+          sudo apt-get install -y bc bison flex libelf-dev libssl-dev cpio rsync
+      - name: Cache pinned Android Clang and pahole
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
+        uses: actions/cache@v4
+        with:
+          path: .tmp/toolchains
+          key: oneplus-android-clang-28b975ada54f8610ed531a6b57253aed10e7c87d-tools-d153b7ab4a4956198957e258d4f370e875c53059
+      - name: Prepare verified Android toolchain
+        if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
+        run: bash scripts/prepare_oneplus_toolchain.sh --env-file "$GITHUB_ENV"
       - name: Checkout OnePlus source
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
@@ -225,9 +235,12 @@ jobs:
           test -s "$RUNNER_TEMP/stock-Module.symvers"
           test -s Module.symvers
           if [[ "${{ inputs.enable_bore || false }}" == true ]]; then scripts/verify_abi_crc.sh --bore "$RUNNER_TEMP/stock-Module.symvers" Module.symvers; else scripts/verify_abi_crc.sh "$RUNNER_TEMP/stock-Module.symvers" Module.symvers; fi
-      - name: ROM system/vendor WLAN ABI gate before package
+      - name: ROM system/vendor WLAN and cellular ABI gates before package
         if: ${{ matrix.stock_uname == '6.1.118-android14-11-o-gac2e718ebee6' && (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) }}
-        run: bash scripts/verify_wifi_abi.sh --kernel Module.symvers
+        run: |
+          set -euo pipefail
+          bash scripts/verify_wifi_abi.sh --kernel Module.symvers
+          bash scripts/verify_radio_abi.sh --kernel Module.symvers
       - name: Package AnyKernel ZIP and checksum
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: scripts/package_anykernel.sh --template anykernel/oneplus --image out/arch/arm64/boot/Image --name "oneplus-${{ matrix.device }}-${{ matrix.stock_uname }}" --output-dir artifacts
@@ -236,6 +249,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
+          cp Module.symvers artifacts/built-Module.symvers
+          cp "$RUNNER_TEMP/stock-Module.symvers" artifacts/stock-Module.symvers
+          cp out/.config artifacts/kernel.config
           printf 'source_sha=%s\nkmi=%s\npage_size=%s\nstock_uname=%s\nresolver_source=%s\nresolver_sha256=%s\n' "$(git -C .tmp/kernel_src/kernel_platform/common rev-parse HEAD)" "$KMI" "$PAGE_SIZE" "$STOCK_UNAME" "$(grep '^resolver_source=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" "$(grep '^sha256=' "$RUNNER_TEMP/symvers.env" | cut -d= -f2-)" > artifacts/oneplus-provenance.txt
       - name: Upload AnyKernel3 artifact
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
