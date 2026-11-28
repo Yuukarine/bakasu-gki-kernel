@@ -51,6 +51,75 @@ fn version_strings(data: &[u8]) -> Vec<String> {
     result
 }
 
+// The Image can contain both linux_proc_banner (an unfinished "# SMP..."
+// template) and linux_banner. Preserve literal text; never mistake the former
+// for the real build version or discard a conflicting release in either one.
+fn full_banner(data: &[u8], expected_timestamp: Option<&str>) -> Result<String, String> {
+    let marker = b"Linux version ";
+    let mut offset = 0;
+    let mut full = Vec::new();
+    while let Some(found) = find_bytes(&data[offset..], marker) {
+        let start = offset + found;
+        let end = data[start..]
+            .iter()
+            .position(|b| matches!(b, 0 | b'\n' | b'\r'))
+            .map_or(data.len(), |n| start + n);
+        let text = std::str::from_utf8(&data[start..end])
+            .map_err(|_| "image banner verification: FAIL: invalid UTF-8 banner")?;
+        if text.contains("runner@runnervm") {
+            return Err(format!(
+                "image banner verification: FAIL: runner metadata: {text}"
+            ));
+        }
+        let metadata = text.strip_prefix("Linux version ").unwrap();
+        let identity = metadata
+            .split_once(" (")
+            .and_then(|(_, rest)| rest.split_once(") ("));
+        let version = text.rsplit_once(") #").map(|(_, value)| value);
+        let complete = identity.is_some_and(|(user_host, compiler)| {
+            user_host.split_once('@').is_some_and(|(user, host)| {
+                !user.is_empty() && !host.is_empty() && !user_host.contains(char::is_whitespace)
+            }) && !compiler.is_empty()
+        }) && version.is_some_and(|value| {
+            value.split_once(' ').is_some_and(|(number, flags)| {
+                !number.is_empty()
+                    && number.bytes().all(|b| b.is_ascii_digit())
+                    && flags.contains("PREEMPT ")
+                    && flags
+                        .split("PREEMPT ")
+                        .nth(1)
+                        .is_some_and(|t| !t.trim().is_empty())
+            })
+        });
+        if complete {
+            if !full.contains(&text.to_string()) {
+                full.push(text.to_string());
+            }
+        } else {
+            println!("banner_placeholder: {text}");
+        }
+        offset = end.saturating_add(1);
+        if offset >= data.len() {
+            break;
+        }
+    }
+    if full.len() != 1 {
+        return Err(format!(
+            "image banner verification: FAIL: expected one distinct full banner, found {}",
+            full.len()
+        ));
+    }
+    let banner = full.remove(0);
+    if let Some(timestamp) = expected_timestamp {
+        if !banner.ends_with(&format!(" {timestamp}")) {
+            return Err(format!(
+                "image banner verification: FAIL: expected timestamp={timestamp} actual={banner}"
+            ));
+        }
+    }
+    Ok(banner)
+}
+
 fn decompress_gzip(data: &[u8]) -> Option<Vec<u8>> {
     if data.starts_with(&[0x1f, 0x8b]) {
         let mut decoder = flate2::read::GzDecoder::new(data);
@@ -71,6 +140,10 @@ fn inspect_image(args: &[String]) -> Result<(), String> {
     let expected = args
         .windows(2)
         .find(|w| w[0] == "--expected-uts")
+        .map(|w| w[1].as_str());
+    let expected_timestamp = args
+        .windows(2)
+        .find(|w| w[0] == "--expected-timestamp")
         .map(|w| w[1].as_str());
     let require: Vec<&str> = args
         .windows(2)
@@ -102,12 +175,12 @@ fn inspect_image(args: &[String]) -> Result<(), String> {
                 .into(),
         );
     }
+    let scan_data = if compression == "gzip" {
+        decompress_gzip(&data).ok_or("unable to decompress gzip image")?
+    } else {
+        data.clone()
+    };
     if let Some(expected_uts) = expected {
-        let scan_data = if compression == "gzip" {
-            decompress_gzip(&data).ok_or("unable to decompress gzip image")?
-        } else {
-            data.clone()
-        };
         let versions = version_strings(&scan_data);
         if versions.len() != 1 {
             return Err(format!(
@@ -129,6 +202,8 @@ fn inspect_image(args: &[String]) -> Result<(), String> {
             ));
         }
     }
+    let banner = full_banner(&scan_data, expected_timestamp)?;
+    println!("{banner}");
     if let Some(pos) = find_bytes(&data, b"IKCFG_ST") {
         let start = pos + 8;
         let end = find_bytes(&data[start..], b"IKCFG_ED").map_or(data.len(), |n| start + n);
@@ -150,13 +225,7 @@ fn inspect_image(args: &[String]) -> Result<(), String> {
     } else if !require.is_empty() {
         return Err("image release verification: FAIL: IKCONFIG_ST not found".into());
     }
-    if let Some(expected_uts) = expected {
-        let scan_data = if compression == "gzip" {
-            decompress_gzip(&data)
-                .ok_or("image release verification: FAIL: unable to decompress gzip image")?
-        } else {
-            data.clone()
-        };
+    if expected.is_some() {
         let actual = version_strings(&scan_data)
             .into_iter()
             .next()
@@ -165,7 +234,6 @@ fn inspect_image(args: &[String]) -> Result<(), String> {
             "image release verification: PASS (format={}; Linux version {})",
             compression, actual
         );
-        let _ = expected_uts;
     }
     Ok(())
 }
@@ -667,7 +735,7 @@ mod tests {
         let path = temp("Image");
         let mut image = vec![0u8; 0x3c];
         image[0x38..0x3c].copy_from_slice(b"ARMd");
-        image.extend_from_slice(b"Linux version 6.1.118-android14-11-o-gac2e718ebee6\0");
+        image.extend_from_slice(b"Linux version 6.1.118-android14-11-o-gac2e718ebee6 (build-user@build-host) (clang version 18.1.3) #1 SMP PREEMPT Sat Nov 28 03:37:02 UTC 2026\n\0");
         fs::write(&path, &image).unwrap();
         assert!(inspect_image(&[
             path.to_string_lossy().into(),
@@ -682,6 +750,48 @@ mod tests {
         ])
         .is_err());
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn full_banner_distinguishes_placeholder_and_preserves_metadata() {
+        let real = "Linux version 6.1.118-test (build-user@build-host) (Ubuntu clang version 18.1.3 (1ubuntu1), Ubuntu LLD 18.1.3) #1 SMP PREEMPT Sat Nov 28 03:37:02 UTC 2026";
+        let image = format!("Linux version 6.1.118-test (build-user@build-host) (clang) # SMP PREEMPT \n\0{real}\n\0{real}\0");
+        assert_eq!(
+            full_banner(image.as_bytes(), Some("Sat Nov 28 03:37:02 UTC 2026")).unwrap(),
+            real
+        );
+        assert!(full_banner(image.as_bytes(), Some("Fri Nov 27 00:00:00 UTC 2026")).is_err());
+        assert!(full_banner(b"Linux version 6.1.118-test (builder)\0", None).is_err());
+        assert!(full_banner(real.replace("#1", "#").as_bytes(), None).is_err());
+        assert!(full_banner(
+            real.replace("Sat Nov 28 03:37:02 UTC 2026", "").as_bytes(),
+            None
+        )
+        .is_err());
+        assert!(full_banner(
+            format!("{real}\0{}", real.replace("build-host", "other-host")).as_bytes(),
+            None
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn runner_metadata_is_rejected_even_in_placeholder() {
+        let real = "Linux version 6.1.118-test (build-user@build-host) (clang) #1 SMP PREEMPT Sat Nov 28 03:37:02 UTC 2026";
+        assert!(full_banner(
+            real.replace("build-user@build-host", "runner@runnervm0j63q")
+                .as_bytes(),
+            None
+        )
+        .is_err());
+        assert!(full_banner(
+            format!(
+                "Linux version 6.1.118-test (runner@runnervm0j63q) (clang) # SMP PREEMPT \0{real}"
+            )
+            .as_bytes(),
+            None
+        )
+        .is_err());
     }
 
     #[test]

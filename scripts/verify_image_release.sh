@@ -22,4 +22,6 @@ if [[ ! -x $ktool_bin ]]; then
   ktool_bin=$default_bin
 fi
 [[ -x $ktool_bin ]] || { echo "ktool binary not executable: $ktool_bin" >&2; exit 2; }
-"$ktool_bin" inspect-image "$image" --expected-uts "$expected"
+args=(inspect-image "$image" --expected-uts "$expected")
+if [[ -n ${KBUILD_BUILD_TIMESTAMP:-} ]]; then args+=(--expected-timestamp "$KBUILD_BUILD_TIMESTAMP"); fi
+"$ktool_bin" "${args[@]}"

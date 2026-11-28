@@ -40,6 +40,9 @@ jobs:
       LLVM: "1"
       JOBS: "2"
       KCFLAGS: -Wno-error=unused-function
+      KBUILD_BUILD_USER: build-user
+      KBUILD_BUILD_HOST: build-host
+      KBUILD_BUILD_VERSION: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Cache Rust ktool
@@ -85,6 +88,10 @@ jobs:
           git -C .tmp/kernel_src/kernel_platform/common fetch --depth 1 origin "$SOURCE_REF"
           git -C .tmp/kernel_src/kernel_platform/common checkout --detach FETCH_HEAD
           echo "SOURCE_SHA=$(git -C .tmp/kernel_src/kernel_platform/common rev-parse HEAD)" >> "$GITHUB_ENV"
+          source_epoch=$(git -C .tmp/kernel_src/kernel_platform/common show -s --format=%ct HEAD)
+          timestamp=$(LC_ALL=C date -u -d "@$source_epoch" '+%a %b %e %T UTC %Y')
+          echo "KBUILD_BUILD_TIMESTAMP=$timestamp" >> "$GITHUB_ENV"
+          printf 'Source commit build timestamp: %s\n' "$timestamp"
       - name: Restore stock Module.symvers cache
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         uses: actions/cache/restore@v4

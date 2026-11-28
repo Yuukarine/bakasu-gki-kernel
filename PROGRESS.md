@@ -259,3 +259,12 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - [x] Production/offline literal evidence is in artifacts/test02-transaction/vendor-boot-profile/offline/:commands.json,stdout/stderr,build gates,recovered exports and banner. Native provider DIFF reconstruction matched all9 changed/new tables; baseline/rollback hashes still match. Earlier 181/48 blocker checklists are historical; provider coverage is now complete for the16 consumers.
 
 - [x] Pre-cleanup image immutability guard detected a changed container and exited1 before cleanup. Re-decompression proved entire cpio byte-identical(SHA7b57faec6d860b3bd05073ad557937c031acf109d329c1dd77d8a178a51388b4);all480 extracted/archive module hashes match original. New vendor-boot-observations.tsv records both container hashes/sizes; provider evidence unaffected. Cleanup subsequently executed only after this check.
+
+
+## test-03 — deterministic metadata and full Image banner (2026-11-28)
+- Approved scope: only KBUILD metadata and host ktool banner validation; no kernel config/hook/module policy changes, no adb/fastboot. Preserve UAG/ZRAM/BBR/debug, SUSFS manual5/5, rfkill15 removal/334 retained and module signature settings.
+- Export build-user@build-host, build version1 and LC_ALL=C UTC timestamp derived from kernel HEAD commit %ct in workflow source checkout and before the first make in build_oneplus.sh; compiler identification unchanged.
+- ktool prints literal full banner, labels unfinished proc banner, rejects runner@runnervm, conflicting/truncated/dirty UTS, missing full banner and wrong expected source timestamp. Exact release gate remains6.1.118-android14-11-o-gac2e718ebee6.
+- Local gates: Rust fmt/clippy(-D warnings)/12 tests/release, bash/sh syntax, ShellCheck0.11.0, actionlint1.7.12, YAML, all10 shell fixture suites and ROM3081 preflight PASS. Initial trailing whitespace diff-check failure corrected; full suite rerun.
+- Transaction: baseline runner banner accepted(exit0), modified rejected(exit2), rollback restored source SHA256 and accepted(exit0). Native roles in artifacts/test03-transaction/{MODIFIED_FILE,DIFF_FILE,VERIFICATION.txt,ROLLBACK.sh}.
+- Release acceptance pending live CI/build/offline: stock15615 missing0/changed0; ROM3081 missing_provider0/missing_symbol0/changed_crc0; full SELinux5/5; rfkill15/334; exact raw ARM64 Image/banner. test-01/test-02 stay unchanged.
