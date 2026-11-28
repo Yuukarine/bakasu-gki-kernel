@@ -365,3 +365,56 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
   preserving stock layout; added negative regression for accidental reenable.
   This experiment demonstrates why reference config copying is not proof of KMI
   compatibility. Neither failed candidate was packaged or published as test-04.
+
+### test-04 final offline release record
+
+- Code commit: a05b47636c36391ce051f4a50c6ed03f155fd5d1 (includes toolchain
+  corrections388c1c7/07c58a2 and initial networking/cellular contracts e369607).
+- Green CI: https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/46131609839
+- Green production build: https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/46131682044
+  Single Ace3V target, BORE=false, verified Android17/pahole1.23 identity-v2;
+  resolver_source=cache using the fresh matching baseline from attempt2.
+- Exported via real ktool package-local:
+  local-builds/test-04/ace3v-ak3-test-04.zip
+  SHA256 c79fad41fff32045c85e892ab875cbc483fc6f2e8b9e30f681863a1ddf342d2c
+  and .sha256, detailed CHANGELOG.md, appended local-builds/INDEX.md.
+- Actual Image: raw ARM64 little-endian4K pages,38,013,440 bytes;
+  SHA256 42ccaa4cf72078e25de010860231a69a22d579d88acf5458f8a133b99771e509.
+  Full banner (verbatim):
+
+```
+Linux version 6.1.118-android14-11-o-gac2e718ebee6 (build-user@build-host) (Android (10087095, +pgo, +bolt, +lto, -mlgo, based on r487747c) clang version 17.0.2 (https://android.googlesource.com/toolchain/llvm-project d9f89f4d16663d5012e5c09495f3b30ece3d2362), LLD 17.0.2) #1 SMP PREEMPT Fri Mar 27 03:01:48 UTC 2026
+```
+
+- ktool inspect-image/full banner/release/source timestamp PASS; generated
+  compiler capability check PASS; embedded IKCONFIG exactly equals runner.config;
+  ktool verify-kconfig PASS. Kconfig diff vs test03 contains only compiler/pahole
+  capabilities and the declared networking additions. BPF_STREAM_PARSER stays n;
+  UAG/ZRAM/BBR, PHY/IPC/namespaces, debug/security/signature flags unchanged.
+- Actual full stock gate:15,615 reference symbols,0 missing_stock,0 changed_crc,
+ 29 non-reference exports. Original WLAN3,081 plus cellular2,309 imports each have
+  missing_provider=0 missing_symbol=0 changed_crc=0. All repeated offline from
+  downloaded Module.symvers; actual Image recovered15,285 vmlinux exports equal
+  ALL vmlinux entries in built Module.symvers (730 independent anchors,0 missing,
+ 0 changed). CRC equality is not a runtime data/call handshake test.
+- Actual build log: SELinux manual5/5 /attr-current,context,access,status PASS;
+  rfkill protected15 removed /334 retained. Frozen integration step, SELinux
+  gate/source policy and both anykernel.sh files byte-identical to baseline.
+- unzip-tq, root META-INF update-binary/updater-script, executable ak3-core,
+  magiskboot,busybox, anykernel.sh,Image, no .git/traversal PASS. sha256sum-c PASS.
+- Final local fmt/clippy(-D warnings)/12 Rust tests,all11 fixture suites,
+  Bash/POSIX syntax,ShellCheck0.11.0,actionlint1.7.12,YAML,diff--check PASS.
+- Watch CLI suffered one API TCP timeout (exit1), not a build failure; resumed
+  watch on the SAME run, which completed success. No redundant rebuild dispatched.
+- Removed .tmp/ref-kernels and task-owned lint/discovery caches. Preserved every
+  sim_baseline input and test01..03 ZIP hash; retained supplied sim_debug inputs.
+  No adb/fastboot; no binary/module/toolchain/ZIP tracked or force-added.
+- Root-cause boundary: observed wrong toolchain identity/network capability gaps
+  are corrected, but the exact nicmd/DSI0x1004 cause is NOT proven by supplied
+  logs. test03 already passed all2,309 cellular imports. test04 is an offline-
+  verified experimental candidate for a user runtime trial, not a certified fix
+  for calls/data. No speculative SELinux,UID-filter,task/cred or sk_buff patches.
+- Native transaction roles remain local under artifacts/test04-transaction/:
+  MODIFIED_FILE (tar),DIFF_FILE,VERIFICATION.txt,ROLLBACK.sh. The same network
+  contract probe observes baseline FAIL(exit1),modified PASS(exit0),rollback
+  FAIL(exit1); restored source bytes/hashes match pristine baseline.
