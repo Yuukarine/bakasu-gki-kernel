@@ -43,7 +43,10 @@ pahole="$cache/build-tools/linux-x86/bin/pahole"
 "$clang/ld.lld" --version | grep -F 'LLD 17.0.2'
 [[ $("$pahole" --version) == v1.23 ]] || { echo 'expected Android pahole v1.23' >&2; exit 1; }
 # LLVM tools must precede the host distro. Keep host utilities for non-kernel CI.
-export PATH="$clang:$PATH" PAHOLE="$pahole" LLVM=1 HOSTCC=clang HOSTCXX=clang++ TOOLCHAIN_ID="$identity"
+export PATH="$clang:$cache/build-tools/linux-x86/bin:$PATH" PAHOLE="$pahole" LLVM=1 HOSTCC=clang HOSTCXX=clang++ TOOLCHAIN_ID="$identity"
+# Kernel Makefile assigns PAHOLE=pahole, overriding an environment-only path.
+# Verify the unqualified command as well, before spending a full kernel build.
+[[ $(command -v pahole) == "$pahole" && $(pahole --version) == v1.23 ]]
 printf 'verified toolchain=%s clang_commit=%s build_tools_commit=%s\n' "$identity" "$clang_sha" "$tools_sha"
 sha256sum "$clang/clang" "$clang/ld.lld" "$pahole"
 if [[ -n $env_file ]]; then

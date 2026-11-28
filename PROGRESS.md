@@ -340,3 +340,13 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - Transaction: saved pristine tracked baseline archive before edits; native roles
   under local `artifacts/test04-transaction/`; baseline/modified/rollback execute
   the same network contract probe. Final remote/offline evidence follows below.
+
+- Build attempt `46125670654` reached vmlinux link, then failed exit2:
+  `BTF: .tmp_vmlinux.btf: pahole (pahole) is not available`.
+  Root cause of this *build failure* (not cellular): common `Makefile:534`
+  assigns `PAHOLE=pahole`, overriding the absolute environment variable; only
+  the Clang directory had been prepended to PATH. Added pinned build-tools/bin
+  to PATH plus fail-fast verification of the unqualified pahole command and
+  regression assertions. Do not disable CONFIG_DEBUG_INFO_BTF as the log suggests.
+  The independently bootstrapped Android17 stock symvers cache was saved; retry
+  can use that verified cache without a full baseline rebuild.

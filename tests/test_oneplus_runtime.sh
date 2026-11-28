@@ -30,6 +30,10 @@ first_make=next(i for i,s in enumerate(steps) if 'make -C' in s.get('run',''))
 assert prepare < first_make
 assert any('scripts/verify_radio_abi.sh --kernel Module.symvers' in s.get('run','') for s in steps)
 assert 'clang lld llvm' not in next(s['run'] for s in steps if s.get('name')=='Install kernel build dependencies')
+helper=(r/'scripts/prepare_oneplus_toolchain.sh').read_text()
+assert 'PATH="$clang:$cache/build-tools/linux-x86/bin:$PATH"' in helper
+assert '$(command -v pahole)' in helper
+
 PY
 # An arbitrary cache label must fail before any download/build.
 if TOOLCHAIN_ID=ubuntu-clang bash "$root/scripts/prepare_oneplus_toolchain.sh" --cache-dir "$tmp/toolchain" > "$tmp/identity.out" 2>&1; then echo 'fake toolchain identity passed' >&2; exit 1; fi
