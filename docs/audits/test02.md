@@ -213,3 +213,5 @@ Offline:new raw ARM64 Image(37075456 bytes)exact UTS;IKCONFIG + verify-kconfig P
 Local ZIP:local-builds/test-02/ace3v-ak3-test-02.zip
 SHA256:16dd283512ad6230c488b08257097c767bb527e27ab08d4e0d9c27f8655d1dac
 Changelog:local-builds/test-02/CHANGELOG.md;INDEX.md updated by ktool package-local. Original test-01 checksum still passes. Literal logs/commands/recovery metadata:artifacts/test02-transaction/vendor-boot-profile/offline/.
+
+Input-container observation before cleanup: image changed in-place from192MiB/SHA1610159958b47833d9fbf79b92d21cba9239a604bd08eecd09d54ca0120a8929 to180158464 bytes/SHA1451504de69eecb6a98ad0b6d87911f4ddfa62b2054e906f29101705b25da120. Full LZ4-decompressed cpio remained byte-identical(SHA7b57faec6d860b3bd05073ad557937c031acf109d329c1dd77d8a178a51388b4),all480 ELF hashes unchanged; no change to ABI/build evidence. Both observations are recorded in vendor-boot-observations.tsv. .tmp was then emptied;local-builds preserved.
