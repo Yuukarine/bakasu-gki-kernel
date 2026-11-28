@@ -31,10 +31,10 @@ for feature in "${selected[@]}"; do
     git init --bare --quiet "$pin_check"
     git -C "$pin_check" fetch --quiet --depth 1 --no-tags "${url[$feature]}" "${pinned_sha[$feature]}"
     remote_sha=$(git -C "$pin_check" rev-parse FETCH_HEAD)
-    [[ $remote_sha == "${pinned_sha[$feature]}" ]] && [[ $(git -C "$pin_check" cat-file -t "$remote_sha") == commit ]] || {
+    if [[ $remote_sha != "${pinned_sha[$feature]}" ]] || [[ $(git -C "$pin_check" cat-file -t "$remote_sha") != commit ]]; then
       echo "pinned source verification failed: $feature expected=${pinned_sha[$feature]} actual=$remote_sha" >&2
       exit 1
-    }
+    fi
     rm -rf -- "$pin_check"
     trap - EXIT
   fi
