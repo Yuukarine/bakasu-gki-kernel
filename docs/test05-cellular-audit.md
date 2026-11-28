@@ -116,3 +116,19 @@ exports, idempotency, retained unrelated rows, missing/wrong/extra TIPC evidence
 missing kernel symbol and changed CRC. All existing AK3/SELinux/toolchain gates
 remain. Runtime validation of test-05 must separately confirm loaded TIPC, NICM
 DSI completion, rmnet address assignment and a successful call.
+
+## Execution status
+
+Code9372f43 pushed; ci-validate **46136986381 PASS**. Local Rust12 unit tests,
+ShellCheck, actionlint, YAML and all11 shellfixture suites PASS. Independent
+replay verifies330 unrelated protected rows byte-identical and original rfkill15
+exception unchanged. All333 newly measured module imports match existing actual
+Image exports/provider tables. Baseline/modification/rollback policy probes return
+1/0/1 with pristine hashes restored, respectively.
+
+A real `ktool verify-kconfig` experiment setting only KPROBES=n returns **exit2**,
+`kconfig verification: FAIL: protected flag disabled/missing: CONFIG_KPROBES`.
+No build workflow dispatched or test05 ZIP published while the requested n
+conflicts with baseline/project protected-y gate. User selection requested; no
+automatic default from the headless popup is treated as consent. Runtime recovery
+is unverified until a later authorized installation/trial.

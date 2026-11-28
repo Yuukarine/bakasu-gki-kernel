@@ -431,3 +431,11 @@ protected rows plus signature/KMI checks. Cellular profile expanded2642/46, WLAN
 No claim of repaired on-device calls yet; no ADB writes. KPROBES baseline/test04
 are y; user requirement n awaits explicit clarification, no config changed.
 Local Rust12 tests, ShellCheck/actionlint/YAML and all11 shellfixtures PASS.
+
+Code commit9372f43b1cb77b2a44c911e3858535ef4d55a35b pushed; ci-validate46136986381
+PASS100% (https://github.com/Yuukarine/bakasu-gki-kernel/actions/runs/46136986381).
+Requested KPROBES=n on actual test04 config was tested through real ktool and
+rejected exit2: protected flag disabled/missing: CONFIG_KPROBES. Both supplied
+working and actual test04 use y. No gate/config weakened; explicit user decision
+pending before dispatch/build/package test05. No test05 ZIP or runtime repair
+claimed. Reference clones removed; sim_baseline and test01..04 hashes preserved.
