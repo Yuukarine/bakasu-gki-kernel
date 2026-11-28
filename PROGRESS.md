@@ -354,3 +354,14 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
   Added generated-config checks (Clang/assembler/LLD170002 and pahole123) before
   stock compilation and before production compilation, with negative fixtures.
   No readonly capability symbol is forced via a config fragment.
+
+- Build attempt `46128727868`: Android17 full Image banner/Kconfig PASS, but
+  strict CRC gate correctly rejected 42 changed CRCs /0 missing of15,615 stock
+  symbols. Direct source evidence: include/linux/skmsg.h:88-90 conditionally
+  inserts `struct strparser strp` into `struct sk_psock`; enabling the reference
+  BPF_STREAM_PARSER option propagates different types through exported BPF/ESP
+  functions (e.g. bpf_prog_create cb0e11aa->aa8469ee, sk_psock_init
+  c72a86a6->28198a5f). Reverted ONLY this unsafe config candidate to explicit n,
+  preserving stock layout; added negative regression for accidental reenable.
+  This experiment demonstrates why reference config copying is not proof of KMI
+  compatibility. Neither failed candidate was packaged or published as test-04.

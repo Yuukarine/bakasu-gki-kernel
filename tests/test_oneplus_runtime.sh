@@ -16,11 +16,14 @@ grep -Fq 'changed_crc:' "$tmp/drift.out"
 cat "$root/configs/bakasu_stealth.fragment" "$root/configs/oneplus_extras.fragment" > "$tmp/good.config"
 printf 'CONFIG_DEBUG_FS=y\nCONFIG_KPROBES=y\nCONFIG_FTRACE=y\nCONFIG_AUDIT=y\nCONFIG_PRINTK=y\n' >> "$tmp/good.config"
 "$root/scripts/verify_kconfig.sh" --config "$tmp/good.config" --branch oneplus-ogki
-for flag in CONFIG_NETFILTER_XT_MATCH_ADDRTYPE CONFIG_IP6_NF_TARGET_MASQUERADE CONFIG_BPF_STREAM_PARSER; do
+for flag in CONFIG_NETFILTER_XT_MATCH_ADDRTYPE CONFIG_IP6_NF_TARGET_MASQUERADE; do
   sed "s/^$flag=y$/# $flag is not set/" "$tmp/good.config" > "$tmp/bad.config"
   if "$root/scripts/verify_kconfig.sh" --config "$tmp/bad.config" --branch oneplus-ogki > "$tmp/bad.out" 2>&1; then echo "dropped $flag passed" >&2; exit 1; fi
   grep -Fq "fragment mismatch $flag=n, expected y" "$tmp/bad.out"
 done
+sed 's/^# CONFIG_BPF_STREAM_PARSER is not set$/CONFIG_BPF_STREAM_PARSER=y/' "$tmp/good.config" > "$tmp/bad-stream.config"
+if "$root/scripts/verify_kconfig.sh" --config "$tmp/bad-stream.config" --branch oneplus-ogki > "$tmp/stream.out" 2>&1; then echo 'ABI-changing BPF stream parser passed' >&2; exit 1; fi
+grep -Fq 'fragment mismatch CONFIG_BPF_STREAM_PARSER=y, expected n' "$tmp/stream.out"
 python3 - "$root" <<'PY'
 from pathlib import Path
 import sys,yaml

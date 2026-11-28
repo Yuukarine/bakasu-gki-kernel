@@ -78,14 +78,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc bison flex libelf-dev libssl-dev cpio rsync
       - name: Cache pinned Android Clang and pahole
+        id: android_toolchain_cache
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: .tmp/toolchains
           key: oneplus-android-clang-28b975ada54f8610ed531a6b57253aed10e7c87d-tools-d153b7ab4a4956198957e258d4f370e875c53059
       - name: Prepare verified Android toolchain
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: bash scripts/prepare_oneplus_toolchain.sh --env-file "$GITHUB_ENV"
+      - name: Save verified Android toolchain cache
+        if: ${{ (!inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname) && steps.android_toolchain_cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .tmp/toolchains
+          key: oneplus-android-clang-28b975ada54f8610ed531a6b57253aed10e7c87d-tools-d153b7ab4a4956198957e258d4f370e875c53059
       - name: Checkout OnePlus source
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
         run: |
