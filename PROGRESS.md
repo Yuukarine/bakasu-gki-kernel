@@ -239,3 +239,12 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - [x] Reused transaction BASELINE181/MODIFIED48/ROLLBACK181, exit2 each; restored byte-identical. Rust fmt/clippy/10 tests, ShellCheck0.11.0, actionlint1.7.12, bash/sh/YAML, all8 fixture suites and diff --check PASS. Literal commands/results: artifacts/test02-transaction/provider-profile/recheck-2026-11-28/.
 - [x] .tmp emptied after checking every supplied ELF already has a byte-identical ignored evidence copy; local-builds unchanged, no .ko/ZIP tracked.
 - [ ] Production dispatch and test-02 remain blocked: obtain real exports for remaining25 symbols /48 import rows. No gate relaxation or MODULE_FORCE_LOAD; no new production run or ZIP.
+
+## 2026-11-28 vendor_boot first-stage providers / test-02 release
+- [x] Bound vendor_boot image SHA1610159958b47833d9fbf79b92d21cba9239a604bd08eecd09d54ca0120a8929; host-parsed VNDRBOOTv4/table,newc cpio and LZ4;480 ELF modules,337 identical overlap,143 new; combined632 modules/5442 exports.
+- [x]48/48 missing import rows uniquely resolved; original3081 requirements unchanged. Actual preflight `MODULE ABI CHECK: PASS (imports=3081 modules=16 missing_provider=0 missing_symbol=0 changed_crc=0)`,exit0. Provider provenance and resolved rows committed as text only.
+- [x] Transaction BASELINE48 exit2 / MODIFIED0 exit0 / ROLLBACK48 exit2; restored baseline hashes match, modified profile stays changed. Original four roles extended by artifacts/test02-transaction/vendor-boot-profile/.
+- [x] Full local gates PASS(exit0): Rust fmt/clippy/10 tests,bash/sh syntax,ShellCheck0.11.0,actionlint1.7.12,YAML,all8 fixtures,real preflight and diff --check. Literal log: artifacts/test02-transaction/vendor-boot-profile/local-gates.log.
+- [ ] Commit/push and green ci-validate.
+- [ ] OnePlus build(enable_bore=false),live SELinux5/5 and rfkill15/334,stock+ROM ABI,Image/ZIP verification.
+- [ ] ktool package-local test-02,checksum/changelog/index,cleanup .tmp and clean Git.

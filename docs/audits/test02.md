@@ -185,3 +185,17 @@ Remaining acceptance: real missing provider ELFs or an authoritative ROM export
 symvers, then strict zero-unverified preflight, full stock+ROM CRC build gates,
 and only then publication. Input binaries are preserved locally under ignored
 artifacts/test02-rom-provider-inputs/; none belong in Git.
+
+## vendor_boot first-stage evidence: preflight unblocked (2026-11-28)
+
+Actual source image SHA256 `1610159958b47833d9fbf79b92d21cba9239a604bd08eecd09d54ca0120a8929`. VNDRBOOT v4,4096-byte pages,one PLATFORM ramdisk,18,197,975 compressed LZ4 bytes /61,817,600 cpio bytes.480 actual ELF modules extracted without ARM execution;337 are byte-identical dlkm overlaps,143 new. Combined632 modules/5,442 exports.
+
+All48 unresolved imports (25 symbols) match unique real provider exports with0 CRC mismatch. All3,081 original import requirements unchanged. Preflight exit0:
+
+```
+MODULE ABI CHECK: PASS (imports=3081 modules=16 missing_provider=0 missing_symbol=0 changed_crc=0)
+```
+
+Evidence: `vendor-boot-inputs.tsv` and `vendor-boot-resolved-imports.tsv` in the ABI profile. The previous unresolved-provider statements above are historical, superseded by this supplied-image evidence. No gate relaxed; no MODULE_FORCE_LOAD. This confirms provider coverage for the16 consumers, not a runtime phone test or a claim that all632 modules' transitive imports were tested. Source extract/parser and literal transaction outputs are preserved in ignored `artifacts/test02-transaction/vendor-boot-profile/`.
+
+Production CI/build/artifact acceptance remains to be executed.
