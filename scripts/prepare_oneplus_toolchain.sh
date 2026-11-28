@@ -15,7 +15,7 @@ mkdir -p "$cache"
 cache=$(cd -- "$cache" && pwd)
 clang_sha=28b975ada54f8610ed531a6b57253aed10e7c87d
 tools_sha=d153b7ab4a4956198957e258d4f370e875c53059
-identity=android-clang-r487747c-pahole-1.23
+identity=android-clang-r487747c-pahole-1.23-v2
 [[ ${TOOLCHAIN_ID:-$identity} == "$identity" ]] || { echo "unsupported OnePlus toolchain identity: $TOOLCHAIN_ID" >&2; exit 1; }
 fetch(){
   local name=$1 url=$2 sha=$3 subtree=$4 dir

@@ -38,4 +38,12 @@ PY
 # An arbitrary cache label must fail before any download/build.
 if TOOLCHAIN_ID=ubuntu-clang bash "$root/scripts/prepare_oneplus_toolchain.sh" --cache-dir "$tmp/toolchain" > "$tmp/identity.out" 2>&1; then echo 'fake toolchain identity passed' >&2; exit 1; fi
 grep -Fq 'unsupported OnePlus toolchain identity' "$tmp/identity.out"
+printf 'CONFIG_CC_IS_CLANG=y\nCONFIG_CLANG_VERSION=170002\nCONFIG_AS_VERSION=170002\nCONFIG_LD_IS_LLD=y\nCONFIG_LLD_VERSION=170002\nCONFIG_PAHOLE_VERSION=123\n' > "$tmp/toolchain.config"
+"$root/scripts/verify_oneplus_toolchain_config.sh" "$tmp/toolchain.config"
+for bad in 'CONFIG_CLANG_VERSION=180103' 'CONFIG_PAHOLE_VERSION=0' 'CONFIG_PAHOLE_VERSION=125'; do
+  symbol=${bad%%=*}
+  sed "s/^$symbol=.*/$bad/" "$tmp/toolchain.config" > "$tmp/bad-toolchain.config"
+  if "$root/scripts/verify_oneplus_toolchain_config.sh" "$tmp/bad-toolchain.config" > "$tmp/toolchain-bad.out" 2>&1; then echo "wrong compiler capability passed: $bad" >&2; exit 1; fi
+  grep -Fq 'OnePlus toolchain config: FAIL' "$tmp/toolchain-bad.out"
+done
 printf 'OnePlus runtime/toolchain/cellular fixtures: PASS\n'

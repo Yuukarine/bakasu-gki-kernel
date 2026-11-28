@@ -348,5 +348,9 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
   the Clang directory had been prepended to PATH. Added pinned build-tools/bin
   to PATH plus fail-fast verification of the unqualified pahole command and
   regression assertions. Do not disable CONFIG_DEBUG_INFO_BTF as the log suggests.
-  The independently bootstrapped Android17 stock symvers cache was saved; retry
-  can use that verified cache without a full baseline rebuild.
+  The first Android17 stock cache was saved, but generated pahole capability
+  values must not be trusted from the broken PATH. Superseded its identity with
+  `android-clang-r487747c-pahole-1.23-v2`, requiring a fresh unpatched baseline.
+  Added generated-config checks (Clang/assembler/LLD170002 and pahole123) before
+  stock compilation and before production compilation, with negative fixtures.
+  No readonly capability symbol is forced via a config fragment.

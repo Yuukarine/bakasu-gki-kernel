@@ -12,7 +12,7 @@ on:
       target_stock_uname: {description: Optional single matrix target to run, required: false, default: "", type: string}
       bootstrap_stock_symvers: {description: Build unpatched stock baseline on cache miss, required: false, default: false, type: boolean}
       enable_bore: {description: Apply BORE only when HMBIRD is disabled, required: false, default: false, type: boolean}
-      toolchain: {description: Toolchain identity for cache validation, required: false, default: android-clang-r487747c-pahole-1.23, type: string}
+      toolchain: {description: Toolchain identity for cache validation, required: false, default: android-clang-r487747c-pahole-1.23-v2, type: string}
 permissions: {contents: read}
 jobs:
   build:
@@ -27,7 +27,7 @@ jobs:
       KMI: ${{ matrix.kmi }}
       STOCK_UNAME: ${{ matrix.stock_uname }}
       PAGE_SIZE: ${{ matrix.page_size }}
-      TOOLCHAIN_ID: ${{ inputs.toolchain || 'android-clang-r487747c-pahole-1.23' }}
+      TOOLCHAIN_ID: ${{ inputs.toolchain || 'android-clang-r487747c-pahole-1.23-v2' }}
       SOURCE_REPO: ${{ inputs.source_repo || 'https://github.com/OnePlusOSS/android_kernel_common_oneplus_sm7675.git' }}
       SOURCE_REF: ${{ inputs.source_ref || matrix.source_ref }}
       MODULES_REPO: https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm7675.git
@@ -220,6 +220,7 @@ jobs:
           mkdir -p out
           if [[ -x .tmp/kernel_src/kernel_platform/common/scripts/kconfig/merge_config.sh ]]; then .tmp/kernel_src/kernel_platform/common/scripts/kconfig/merge_config.sh -m -O out out/.config configs/bakasu_stealth.fragment configs/oneplus_extras.fragment; fi
           make -C .tmp/kernel_src/kernel_platform/common O="$PWD/out" olddefconfig
+          scripts/verify_oneplus_toolchain_config.sh out/.config
           scripts/verify_kconfig.sh --config out/.config --branch oneplus-ogki
       - name: Build OnePlus OGKI
         if: ${{ !inputs.target_stock_uname || matrix.stock_uname == inputs.target_stock_uname }}
