@@ -20,9 +20,23 @@ for feature in "${selected[@]}"; do
   [[ -n ${kind[$feature]:-} ]] || { echo "feature missing from manifest: $feature" >&2; exit 1; }
   remote_sha=$(git ls-remote --exit-code "${url[$feature]}" "${ref[$feature]}" | awk 'NR==1 {print $1}')
   [[ $remote_sha =~ ^[0-9a-f]{40}$ ]] || { echo "source ref not found: $feature ${url[$feature]}#${ref[$feature]}" >&2; exit 1; }
-  if [[ -n ${pinned_sha[$feature]:-} && ${pinned_sha[$feature]} != "$remote_sha" ]]; then
-    echo "pinned source SHA mismatch: $feature expected=${pinned_sha[$feature]} actual=$remote_sha" >&2
-    exit 1
+  if [[ -n ${pinned_sha[$feature]:-} ]]; then
+    [[ ${pinned_sha[$feature]} =~ ^[0-9a-f]{40}$ ]] || { echo "invalid pinned source SHA: $feature" >&2; exit 1; }
+    # A moving branch may advance after pinning. Verify the exact immutable
+    # commit from its origin, not equality with today's branch HEAD.
+    repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+    mkdir -p "$repo_root/.tmp"
+    pin_check=$(mktemp -d "$repo_root/.tmp/patch-source-pin.XXXXXX")
+    trap 'rm -rf -- "$pin_check"' EXIT
+    git init --bare --quiet "$pin_check"
+    git -C "$pin_check" fetch --quiet --depth 1 --no-tags "${url[$feature]}" "${pinned_sha[$feature]}"
+    remote_sha=$(git -C "$pin_check" rev-parse FETCH_HEAD)
+    [[ $remote_sha == "${pinned_sha[$feature]}" ]] && [[ $(git -C "$pin_check" cat-file -t "$remote_sha") == commit ]] || {
+      echo "pinned source verification failed: $feature expected=${pinned_sha[$feature]} actual=$remote_sha" >&2
+      exit 1
+    }
+    rm -rf -- "$pin_check"
+    trap - EXIT
   fi
   patch_dir="patches/sources/$feature"
   mapfile -t patches < <(find "$patch_dir" -maxdepth 1 -type f -name '*.patch' -print 2>/dev/null | sort)

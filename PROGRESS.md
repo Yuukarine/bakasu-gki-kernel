@@ -245,6 +245,10 @@ Sources cloned at depth 1 into `.tmp/audit/` and removed after inspection: BakaS
 - [x]48/48 missing import rows uniquely resolved; original3081 requirements unchanged. Actual preflight `MODULE ABI CHECK: PASS (imports=3081 modules=16 missing_provider=0 missing_symbol=0 changed_crc=0)`,exit0. Provider provenance and resolved rows committed as text only.
 - [x] Transaction BASELINE48 exit2 / MODIFIED0 exit0 / ROLLBACK48 exit2; restored baseline hashes match, modified profile stays changed. Original four roles extended by artifacts/test02-transaction/vendor-boot-profile/.
 - [x] Full local gates PASS(exit0): Rust fmt/clippy/10 tests,bash/sh syntax,ShellCheck0.11.0,actionlint1.7.12,YAML,all8 fixtures,real preflight and diff --check. Literal log: artifacts/test02-transaction/vendor-boot-profile/local-gates.log.
-- [ ] Commit/push and green ci-validate.
+- [x] Provider evidence commit a79ccd96b3a5660fc61bbc085deded855220d5d4 pushed; ci-validate46099478110 success, gh run watch exit0.
+- [x] Dispatched build-oneplus46099557100 for only6.1.118-android14-11-o-gac2e718ebee6,enable_bore=false,bootstrap_stock_symvers=true(cache still preferred). Result pending.
 - [ ] OnePlus build(enable_bore=false),live SELinux5/5 and rfkill15/334,stock+ROM ABI,Image/ZIP verification.
 - [ ] ktool package-local test-02,checksum/changelog/index,cleanup .tmp and clean Git.
+
+- [x] Build46099557100 actual preflight PASS and ROM EXPORT POLICY PASS(rfkill_protected_removed=15 remaining_protected=334); resolver_source=cache shaeda4a3c18753802eea95f7c1e90b26f932a1d98ce7fa530335bee1e8997b87f4. Stopped before compile because apply_patch_sources compared moving Baka main HEAD4ca505a878d9a3d9584417ef6b7fa443f2e516d5 against pinned cac1e79355ef451539f5c5ba9dc2bda1c64069de.
+- [x] Fix fetches/verifies exact pinned origin commit while separately requiring declared ref exists; retains original pins/ABI policy. Added offline advancing-branch/missing-pin/unpinned regression fixtures; BASELINE fail1 / MODIFIED pass0 / ROLLBACK fail1, restored byte-identical. Evidence: artifacts/test02-transaction/vendor-boot-profile/source-pin-fix/.
